@@ -56,6 +56,20 @@ group.colors <- c(Acidobacteria = "grey26", Actinobacteria = "royalblue", Alphap
 ###########################  DATA IMPORT AND NORMALIZATION  ##########################################
 ######################################################################################################
 
+#loading original mothur output
+sharedfile <- "/Users/vdenef/Documents/UMich/Papers/2015_Fujimoto_activity_Frontiers/Data_analysis/jgi16S40kitagger.trim.contigs.good.unique.good.filter.unique.precluster.pick.pick.an.unique_list.shared"
+taxfile <- "/Users/vdenef/Documents/UMich/Papers/2015_Fujimoto_activity_Frontiers/Data_analysis/jgi16S40kitagger.trim.contigs.good.unique.good.filter.unique.precluster.pick.pick.an.unique_list.0.03.cons.taxonomy"
+mothurdata_original <- import_mothur(mothur_shared_file = sharedfile ,mothur_constaxonomy_file = taxfile )
+sampledata <- read.table("/Users/vdenef/Documents/UMich/Papers/2015_Fujimoto_activity_Frontiers/Data_analysis/LMSampleDescription.tsv",sep="\t",header=T,row.names=1,as.is=T)
+SAMPLE = sample_data(sampledata)
+physeq_mothur_original = merge_phyloseq(mothurdata_original, SAMPLE)
+#write.table(otu_table(mothurdata_original), "/Users/vdenef/Documents/UMich/Papers/2015_Fujimoto_activity_Frontiers/Data_analysis/shared_transposed", row.names = TRUE)
+
+#loading rdp taxonomy (50 cutoff)
+taxfile_rdp<-"/Users/vdenef/Documents/UMich/Papers/2015_Fujimoto_activity_Frontiers/Data_analysis/All_rdp50taxonomy.sed.tsv"
+mothurdata_rdp <- import_mothur(mothur_shared_file = sharedfile ,mothur_constaxonomy_file = taxfile_rdp )
+physeq_mothur_rdp = merge_phyloseq(mothurdata_rdp, SAMPLE)
+
 #importing data into phyloseq
 otu_top205 <- read.table("/Users/vdenef/Documents/UMich/Papers/2015_Fujimoto_activity_Frontiers/Data_analysis/OTURF00005_number.tsv",sep="\t",header=T,row.names=1,as.is=T)
 tax_top205 <- read.table("/Users/vdenef/Documents/UMich/Papers/2015_Fujimoto_activity_Frontiers/Data_analysis/TAXARF00005CON2.tsv",sep="\t",header=T,row.names=1,as.is=T)
@@ -68,41 +82,43 @@ sampledata <- read.table("/Users/vdenef/Documents/UMich/Papers/2015_Fujimoto_act
 SAMPLE = sample_data(sampledata)
 physeq_top205 = merge_phyloseq(physeq_top205, SAMPLE)
 
-#loading original mothur output
-sharedfile <- "/Users/vdenef/Documents/UMich/Papers/2015_Fujimoto_activity_Frontiers/Data_analysis/jgi16S40kitagger.trim.contigs.good.unique.good.filter.unique.precluster.pick.pick.an.unique_list.shared"
-taxfile <- "/Users/vdenef/Documents/UMich/Papers/2015_Fujimoto_activity_Frontiers/Data_analysis/jgi16S40kitagger.trim.contigs.good.unique.good.filter.unique.precluster.pick.pick.an.unique_list.0.03.cons.taxonomy"
-mothurdata_original <- import_mothur(mothur_shared_file = sharedfile ,mothur_constaxonomy_file = taxfile )
-physeq_mothur_original = merge_phyloseq(mothurdata_original, SAMPLE)
-#write.table(otu_table(mothurdata_original), "/Users/vdenef/Documents/UMich/Papers/2015_Fujimoto_activity_Frontiers/Data_analysis/shared_transposed", row.names = TRUE)
+#loading Masa's rarefied dataset (4503 seqs)
+otu_rf <- read.table("/Users/vdenef/Documents/UMich/Papers/2015_Fujimoto_activity_Frontiers/Data_analysis/Rarefy4503_otu.tsv",sep="\t",header=T,row.names=1,as.is=T)
+tax_rf <- read.table("/Users/vdenef/Documents/UMich/Papers/2015_Fujimoto_activity_Frontiers/Data_analysis/Rarefy4503_taxa_RDP.tsv",sep="\t",header=T,row.names=1,as.is=T)
+otumat_rf <- as.matrix(otu_rf)
+taxmat_rf <- as.matrix(tax_rf)
+OTU_rf = otu_table(otumat_rf, taxa_are_rows = TRUE)
+TAX_rf = tax_table(taxmat_rf) 
+physeq_rf = phyloseq(OTU_rf, TAX_rf)
+sampledata <- read.table("/Users/vdenef/Documents/UMich/Papers/2015_Fujimoto_activity_Frontiers/Data_analysis/LMSampleDescription.tsv",sep="\t",header=T,row.names=1,as.is=T)
+SAMPLE = sample_data(sampledata)
+physeq_rf = merge_phyloseq(physeq_rf, SAMPLE)
 
-#loading rdp taxonomy (50 cutoff)
-taxfile_rdp<-"/Users/vdenef/Documents/UMich/Papers/2015_Fujimoto_activity_Frontiers/Data_analysis/All_rdp50taxonomy.sed.tsv"
-mothurdata_rdp <- import_mothur(mothur_shared_file = sharedfile ,mothur_constaxonomy_file = taxfile_rdp )
-physeq_mothur_rdp = merge_phyloseq(mothurdata_rdp, SAMPLE)
 
 #setting phyloseq object to work with
-#physeq_mothur <- physeq_mothur_rdp
-physeq_mothur <- physeq_top205
+physeq <- physeq_mothur_rdp
+#physeq <- physeq_top205
+#physeq <- physeq_rf
 
 # We need to change the taxonomy names
-tax_table(physeq_mothur) <- cbind(tax_table(physeq_mothur),row.names(tax_table(physeq_mothur)))
-colnames(tax_table(physeq_mothur)) <- c("Kingdom","Phylum","Class","Order","Family","Genus","Species")
+tax_table(physeq) <- cbind(tax_table(physeq),row.names(tax_table(physeq)))
+colnames(tax_table(physeq)) <- c("Kingdom","Phylum","Class","Order","Family","Genus","Species")
 
 # removing non-bacterial reads
-physeq_mothur <-subset_taxa(physeq_mothur, Kingdom == "Bacteria")
+physeq <-subset_taxa(physeq, Kingdom == "Bacteria")
 
 # checking read number distribution across samples
-ggplot(data.frame(sum=sample_sums(physeq_mothur)),aes(sum)) + ylab("Number of Sequences per Sample") +
+ggplot(data.frame(sum=sample_sums(physeq)),aes(sum)) + ylab("Number of Sequences per Sample") +
   geom_histogram(colour="black",fill="dodgerblue2", binwidth = 750)  + xlab("Total Sequences") + ggtitle("Raw Sample Read Counts")
-mins<-min(sample_sums(physeq_mothur))
+mins<-min(sample_sums(physeq))
 paste(c("The minimum sample read count is",mins))
-means<-mean(sample_sums(physeq_mothur))
+means<-mean(sample_sums(physeq))
 paste(c("The mean sample read count is",means))
-maxs<-max(sample_sums(physeq_mothur))
+maxs<-max(sample_sums(physeq))
 paste(c("The max sample read count is",maxs))
 
 # COMBINING BEFORE MCMURDIE HOLMES SCALING WITH OUR RAW READS using Michelle's merging by calculating means of reps
-noscale_merge <- merge_samples_mean(physeq_mothur, "Group", "floor")
+noscale_merge <- merge_samples_mean(physeq, "Group", "floor")
 noscale_merge <- prune_taxa(taxa_sums(noscale_merge) > 0, noscale_merge)
 range_nonscale <- max(sample_sums(noscale_merge)) - min(sample_sums(noscale_merge)); range_nonscale
 
@@ -755,6 +771,15 @@ deseq_otu_DNAcDNA_plot_FL_raw
 dev.off()
 
 ########## cDNA vs DNA overlap of OTUs ##########
+# in case you want to use the raw_merged data, uncomment next 7 lines of code
+#merged_final <-raw_merged
+#data_final_df <- read.table("/Users/vdenef/Documents/UMich/Papers/2015_Fujimoto_activity_Frontiers/Data_analysis/LMSampleDescription_merged_final.tsv", sep="\t",header=T,row.names=1,as.is=T)
+#data_final_df$names<-row.names(data_final_df)
+#data_final <- sample_data(data_final_df)  # Metadata in our phyloseq object
+#temp_otu <- otu_table(merged_final)
+#temp_taxa <- tax_table(merged_final)
+#merged_final <- merge_phyloseq(temp_otu, temp_taxa, data_final)
+
 # first make a dataframe that has sample name and list of comma-delimited otus in it
 temp <- otu_table(merged_final)
 otu_list <- vector(mode="character", length=length(colnames(temp)))
