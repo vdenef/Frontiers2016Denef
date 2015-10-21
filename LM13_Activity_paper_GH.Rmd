@@ -30,11 +30,10 @@ library(multcompView)
 library(VennDiagram)
         
 #Set working directory 
-#setwd("~/Documents/UMich/Data/Great_Lakes_Monitoring/JGI_sequencing/iTagplate1_cDNA_V4_tax_mapping")
+#setwd("/Users/vdenef/Documents/UMich/Digital_Notebooks/GitHub/LM13_Activity_GH/LM13_Activity/")
 
 # Source written functions in the files made by Marian and Michelle 
-source("/Users/vdenef/Documents/UMich/Digital_Notebooks/LM13_Activity/r_functions.R")
-source("/Users/vdenef/Documents/UMich/Digital_Notebooks/LM13_Activity/r_functions_github.R")
+source("/Users/vdenef/Documents/UMich/Digital_Notebooks/GitHub/LM13_Activity_GH/LM13_Activity/LM13_Activity_function.R")
 
 ### Set our theme for our plots down the road
 set_ggtheme <- theme_set(theme_bw() + 
