@@ -334,3 +334,76 @@ multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
 }
 #################################################################################### 1
 #################################################################################### 1
+
+######################### Functions #########################
+
+## Wrapper function to cluster OTUs, cut the dendrogram into groups and plot a heatmap
+# dist.method can be spearman, bray-curtis,  or any distance metric accepted by dist()
+# k is the number of groups to split the dendrogram into
+heat_wrapper <- function(physeq, taxrank, dist.method, k) {
+  
+  # Scale OTUs
+  scaled.otu <- scale_otu(
+    physeq = physeq, 
+    taxrank = taxrank
+  )
+  
+  # hierarchical clustering of OTUs using complete linkage
+  clustered.otu <- cluster_otu(scaled.otu, dist.method)
+  
+  # cut the dendrogram into groups
+  groups <- cutree(clustered.otu, k = k)[clustered.otu$order]
+  
+  # Melt to long format
+  melted.otu <- melt(scaled.otu, varnames = c("Date", "OTU"))
+  
+  # Reorder levels of OTUs to match hierarchical clustering
+  otu.order <- levels(melted.otu$OTU)[clustered.otu$order]
+  melted.otu$OTU <- factor(melted.otu$OTU, levels = otu.order)
+  
+  return(list(clusters = groups, data = melted.otu))
+  
+}
+
+
+# Scales OTU relative abundance and changes the names of the OTUs to taxrank + OTU number. 
+# Inputs are a phyloseq object and the taxonomic rank to combine with OTU # for the label 
+scale_otu <- function(physeq, taxrank) {
+  
+  # Scale relative abundance of each OTU
+  # Assumes taxa are rows in original physeq object
+  scaled.otu <- scale(t(otu_table(physeq)))
+  
+  # Change the taxa names to be taxrank + OTU number
+  colnames(scaled.otu) <- paste(tax_table(physeq)[ ,taxrank], 
+                                tax_table(physeq)[ ,"Species"])
+  
+  # Fix formatting of rownames and column names
+  rownames(scaled.otu) <- sample_data(physeq)$Date
+  colnames(scaled.otu) <- gsub("[.]", " ", colnames(scaled.otu))
+  
+  return(scaled.otu)
+} 
+
+
+# Computes dissimilarity between OTUs (spearman, bray, or input to dist() function) and performs 
+# hierarchical clustering with complete linkage.
+cluster_otu <- function(data, dist.method) {
+  if (dist.method == "spearman") {
+    data.sim <- cor(data, method = "spearman") 
+    # Conversion from spearman correlation to dissimilarity. Problematic ...
+    data.dis <- sqrt(2(1-data.sim))
+    data.clust <- hclust(d = as.dist(data.dis), method = "complete")
+  } else if (dist.method == "bray") {
+    data.dis <- vegdist(t(data), method = "bray")
+    data.clust <- hclust(d = data.dis, method = "complete")
+  } else {
+    data.dis <- dist(t(data), method = dist.method)
+    data.clust <- hclust(d = data.dis, method = "complete")
+  }
+  
+  return(data.clust)
+  
+}
+
+
