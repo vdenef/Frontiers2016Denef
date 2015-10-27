@@ -30,8 +30,9 @@ library(scales)
 library(pgirmess)
 library(multcomp)
 library(multcompView)
-library(VennDiagram)
-        
+#library(VennDiagram)
+library(RColorBrewer)
+
 #Set working directory 
 #setwd("/Users/vdenef/Documents/UMich/Digital_Notebooks/GitHub/LM13_Activity_GH/LM13_Activity/")
 
@@ -85,6 +86,7 @@ sampledata <- read.table("/Users/vdenef/Documents/UMich/Papers/2015_Fujimoto_act
 SAMPLE = sample_data(sampledata)
 physeq_top205 = merge_phyloseq(physeq_top205, SAMPLE)
 
+## TO DO add code used by Masa to select 205 OTUs
 #loading Masa's rarefied dataset (4503 seqs)
 otu_rf <- read.table("/Users/vdenef/Documents/UMich/Papers/2015_Fujimoto_activity_Frontiers/Data_analysis/Rarefy4503_otu.tsv",sep="\t",header=T,row.names=1,as.is=T)
 tax_rf <- read.table("/Users/vdenef/Documents/UMich/Papers/2015_Fujimoto_activity_Frontiers/Data_analysis/Rarefy4503_taxa_RDP.tsv",sep="\t",header=T,row.names=1,as.is=T)
@@ -108,7 +110,8 @@ tax_table(physeq) <- cbind(tax_table(physeq),row.names(tax_table(physeq)))
 colnames(tax_table(physeq)) <- c("Kingdom","Phylum","Class","Order","Family","Genus","Species")
 
 # removing non-bacterial reads
-physeq <-subset_taxa(physeq, Kingdom == "Bacteria")
+physeq <- subset_taxa(physeq, Kingdom == "Bacteria")
+#physeq <- subset_taxa(physeq, Phylum != "Actinobacteria")
 
 # checking read number distribution across samples
 ggplot(data.frame(sum=sample_sums(physeq)),aes(sum)) + ylab("Number of Sequences per Sample") +
@@ -725,13 +728,12 @@ mf_cD<-data.frame(otu_table(subset_samples(subset_samples(merged_final,DNA == "c
 mf_cD$OTU=rownames(mf_cD)
 mf_D<-data.frame(otu_table(subset_samples(merged_final,DNA == "D")))
 mf_D$OTU=rownames(mf_D)
-#combine into 1 dataframe, the divide cDNA by DNA data (adding 1 to each element to avoid zeroes)
+#combine into 1 dataframe, then divide cDNA by DNA data (adding 1 to each element to avoid zeroes)
 both = merge(mf_cD,mf_D)
 mf_cD2D = (both[, 2:48]+1) / (both[, 49:95]+1)
 rownames(mf_cD2D) = rownames(mf_D)
 mf_cD2D_log = log((both[, 2:48]+1) / (both[, 49:95]+1),2)
 rownames(mf_cD2D_log) = rownames(mf_D)
-View(data.frame(mf_cD2D_log))
 
 cDD_PCoA_title <- paste("PCoA cDNA:DNA ratios when considering",ntaxa(merged_final),"OTUs")
   
@@ -828,57 +830,45 @@ phyloseq_to_adonis(cDD_physeq, distmat = cDD_norm_bray, dist = "bray",formula)
 
 ########## cDNA:DNA clustering ##########
 #One option is to identify genes that drive the PCoA spread, then plot over seasons, stations, fractions
-#cDD_TAX=tax_table(merged_final_toptaxa)
-#cDD_SAM=sample_data(subset_samples(subset_samples(merged_final,DNA == "cD"),names != "Su.EcD.110.DN"))
-#cDD_OTU=otu_table(mf_cD2D_log,taxa_are_rows=TRUE)
-#cDD_physeq = phyloseq(cDD_OTU,cDD_TAX,cDD_SAM)
-#cDD_physeq = prune_taxa(taxa_sums(merged_final_toptaxa) > 500, cDD_physeq)
+cDD_TAX=tax_table(merged_final_toptaxa)
+cDD_SAM=sample_data(subset_samples(subset_samples(merged_final,DNA == "cD"),names != "Su.EcD.110.DN"))
+cDD_OTU=otu_table(mf_cD2D_log,taxa_are_rows=TRUE)
+cDD_physeq = phyloseq(cDD_OTU,cDD_TAX,cDD_SAM)
+#cDD_physeq = prune_taxa(taxa_sums(merged_final_toptaxa) > 1000, cDD_physeq)
+
+cDD.scale <- 
+  heat_wrapper(
+    physeq = cDD_physeq, 
+    taxrank = "Phylum",
+    dist.method = "spearman",
+    k = 8
+  )
+
+# Pick colors for group labels. n should match k above
+otulabs.colors <- brewer.pal(n = 8, name = "Dark2")
+
+# Make heatmap
+ggplot(cDD.scale$data, aes(x = Group_cDvsD, y = OTU) ) +
+  geom_tile(aes(fill = value)) +
+  scale_fill_gradient(low = "#000033", high = "#FF3300") +
+  theme(
+    axis.text.x = element_text(
+      angle = 45, 
+      vjust = 1, 
+      hjust = 1, 
+      size = 9, 
+      face = "bold"
+    ),     
+    axis.title.y = element_text(size = 14),
+    plot.title = element_text(size = 16, face = "bold"),
+    axis.text.y = element_text(
+      color =  otulabs.colors[cDD.scale$clusters]
+    )
+  )
 
 ########## cDNA vs DNA DEseq ##########
 
 phylum.colors<-group.colors
-# Agglomerate all otu's by given taxonomic level
-pglom <- tax_glom(merged_final, taxrank = "Phylum")
-  
-# deseq without pruning low abundance
-deseq_phy_DNAcDNA <- deSEQ_noprune(pglom, ~ DNA)
-deseq_phy_DNAcDNA_plot <- plot_phylum_deSEQ(deseq_phy_DNAcDNA, "Phylum DNA:cDNA all samples")
-deseq_phy_DNAcDNA_plot
-
-# Agglomerate all otu's by given taxonomic level
-pglom_order <- tax_glom(merged_final, taxrank = "Order")
-  
-# deseq without pruning low abundance
-deseq_order_DNAcDNA <- deSEQ_noprune(pglom_order, ~ DNA)
-deseq_order_DNAcDNA_plot <- plot_order_deSEQ(deseq_order_DNAcDNA, "Order DNA:cDNA all samples")
-deseq_order_DNAcDNA_plot
-
-# deseq without pruning low abundance - otu level
-deseq_otu_DNAcDNA <- deSEQ_noprune(merged_final, ~ DNA)
-deseq_otu_DNAcDNA$plotvalue <- log(as.numeric(deseq_otu_DNAcDNA$baseMean),2)
-deseq_otu_DNAcDNA$sig <- as.factor((deseq_otu_DNAcDNA$padj<0.05)*1)
-deseq_otu_DNAcDNA_plot <- plot_deSEQ(deseq_otu_DNAcDNA, "OTU cDNA:DNA all samples")
-deseq_otu_DNAcDNA_plot
-
-# deseq without pruning low abundance - otu level - per fraction - PA
-merged_final_FL <- subset_samples(merged_final, Fraction != "E")
-deseq_otu_DNAcDNA_FL <- deSEQ_noprune(merged_final_FL, ~ DNA)
-deseq_otu_DNAcDNA_FL$plotvalue <- log(as.numeric(deseq_otu_DNAcDNA_FL$baseMean),2)
-deseq_otu_DNAcDNA_FL$sig <- as.factor((deseq_otu_DNAcDNA_FL$padj<0.05)*1)
-deseq_otu_DNAcDNA_plot_FL <- plot_deSEQ(deseq_otu_DNAcDNA_FL, "OTU cDNA:DNA FL samples")
-pdf(file="/Users/vdenef/Documents/UMich/Papers/2015_Fujimoto_activity_Frontiers/Rplot_cDvsD_FL.pdf", width= 20, height=15, pointsize= 14, useDingbats=FALSE)
-deseq_otu_DNAcDNA_plot_FL
-dev.off()
-
-# deseq without pruning low abundance - otu level - per fraction - FL
-merged_final_PA <- subset_samples(merged_final, Fraction != "B")
-deseq_otu_DNAcDNA_PA <- deSEQ_noprune(merged_final_PA, ~ DNA)
-deseq_otu_DNAcDNA_PA$plotvalue <- log(as.numeric(deseq_otu_DNAcDNA_PA$baseMean),2)
-deseq_otu_DNAcDNA_PA$sig <- as.factor((deseq_otu_DNAcDNA_PA$padj<0.05)*1)
-deseq_otu_DNAcDNA_plot_PA <- plot_deSEQ(deseq_otu_DNAcDNA_PA, "OTU cDNA:DNA PA samples")
-pdf(file="/Users/vdenef/Documents/UMich/Papers/2015_Fujimoto_activity_Frontiers/Rplot_cDvsD_PA.pdf", width= 20, height=15, pointsize= 14, useDingbats=FALSE)
-deseq_otu_DNAcDNA_plot_PA
-dev.off()
 
 # deseq without pruning low abundance - otu level - per fraction - PA - no scaling (done by DEseq2!)
 raw_merged_PA <- subset_samples(raw_merged, Fraction != "B")
@@ -900,6 +890,23 @@ pdf(file="/Users/vdenef/Documents/UMich/Papers/2015_Fujimoto_activity_Frontiers/
 deseq_otu_DNAcDNA_plot_FL_raw
 dev.off()
 
+#plot together
+Phylum_temp <- as.character(deseq_otu_DNAcDNA_PA_raw$Phylum)
+for  (i in 1:length(Phylum_temp)){ 
+  Phylum_temp[i] = paste(Phylum_temp[i],"PA",sep=" ")
+} 
+deseq_otu_DNAcDNA_PA_raw$Phylum_plot <- Phylum_temp
+
+Phylum_temp <- as.character(deseq_otu_DNAcDNA_FL_raw$Phylum)
+for  (i in 1:length(Phylum_temp)){ 
+  Phylum_temp[i] = paste(Phylum_temp[i],"FL",sep=" ")
+} 
+deseq_otu_DNAcDNA_FL_raw$Phylum_plot <- Phylum_temp
+
+deseq_otu_DNAcDNA_FLandPA_raw<-rbind(deseq_otu_DNAcDNA_FL_raw,deseq_otu_DNAcDNA_PA_raw)
+deseq_otu_DNAcDNA_plot_FLandPA_raw <- plot_deSEQ_combo(deseq_otu_DNAcDNA_FLandPA_raw, "OTU cDNA:DNA FL and PA samples")
+deseq_otu_DNAcDNA_plot_FLandPA_raw
+
 ########## cDNA vs DNA overlap of OTUs ########## 
 #TO DO: ADD FILTER TO ONLY INCLUDE SAMPLES WITH 2 REPS
 # All cDNA and DNA sample combined in 2 pools of otus
@@ -907,7 +914,7 @@ dev.off()
 #noscale_merge_allDvscD <- prune_taxa(taxa_sums(noscale_merge_allDvscD) > 0, noscale_merge_allDvscD)
 #View(data.frame(otu_table(noscale_merge_allDvscD)))
 
-# in case you want to use the raw_merged data, uncomment next 7 lines of code
+# in case you want to use the raw_merged data (e.g., when using rarefied data), uncomment next 7 lines of code 
 #merged_final <-raw_merged
 #data_final_df <- read.table("/Users/vdenef/Documents/UMich/Papers/2015_Fujimoto_activity_Frontiers/Data_analysis/LMSampleDescription_merged_final.tsv", sep="\t",header=T,row.names=1,as.is=T)
 #data_final_df$names<-row.names(data_final_df)
@@ -1010,7 +1017,7 @@ vennSDseas <- ddply(venn_df, ~Test+Season, function(x){data.frame(SDseas = sd(x$
 venn_stats.2 <- join(venn_stats.2,vennSDseas)
 
 venn_frac_plot <- ggplot(venn_stats, aes(x = Test, y = Meanfrac, color = Test)) + geom_point(size = 5, alpha = 0.7) +
-  facet_grid(~Fraction, scales="free", space="free_x") + ggtitle("Top 215 OTUs: Mean +/-SD") +
+  facet_grid(~Fraction, scales="free", space="free_x") + ggtitle(overlap_title) +
   geom_errorbar(aes(ymin=Meanfrac-SDfrac, ymax=Meanfrac+SDfrac), width=.2, position=position_dodge(.9)) +
   xlab("Shared and Unique") + ylab("Overlap in OTUs (%)") + theme_bw() + 
   theme(axis.title.x = element_text(face="bold", size=16),
@@ -1024,7 +1031,7 @@ venn_frac_plot <- ggplot(venn_stats, aes(x = Test, y = Meanfrac, color = Test)) 
         legend.position="none"); venn_frac_plot
 
 venn_stat_plot <- ggplot(venn_stats.1, aes(x = Test, y = Meanstat, color = Test)) + geom_point(size = 5, alpha = 0.7) +
-  facet_grid(~Station, scales="free", space="free_x") + ggtitle("Top 215 OTUs: Mean +/-SD") +
+  facet_grid(~Station, scales="free", space="free_x") + ggtitle(overlap_title) +
   geom_errorbar(aes(ymin=Meanstat-SDstat, ymax=Meanstat+SDstat), width=.2, position=position_dodge(.9)) +
   xlab("Shared and Unique") + ylab("Overlap in OTUs (%)") + theme_bw() + 
   theme(axis.title.x = element_text(face="bold", size=16),
@@ -1038,7 +1045,7 @@ venn_stat_plot <- ggplot(venn_stats.1, aes(x = Test, y = Meanstat, color = Test)
         legend.position="none"); venn_stat_plot
 
 venn_seas_plot <- ggplot(venn_stats.2, aes(x = Test, y = Meanseas, color = Test)) + geom_point(size = 5, alpha = 0.7) +
-  facet_grid(~Season, scales="free", space="free_x") + ggtitle("Top 215 OTUs: Mean +/-SD") +
+  facet_grid(~Season, scales="free", space="free_x") + ggtitle(overlap_title) +
   geom_errorbar(aes(ymin=Meanseas-SDseas, ymax=Meanseas+SDseas), width=.2, position=position_dodge(.9)) +
   xlab("Shared and Unique") + ylab("Overlap in OTUs (%)") + theme_bw() + 
   theme(axis.title.x = element_text(face="bold", size=16),
@@ -1052,6 +1059,12 @@ venn_seas_plot <- ggplot(venn_stats.2, aes(x = Test, y = Meanseas, color = Test)
         legend.position="none"); venn_seas_plot
 
 ########## rep1 vs rep2 overlap of OTUs ########## 
+# to subset to OTUs included after merging
+#physeq_toptaxa = prune_taxa(taxa_names(merged_final_toptaxa),physeq)
+#physeq_merged = prune_taxa(taxa_names(merged_final),physeq)
+#physeq<-physeq_toptaxa
+#physeq<-physeq_merged
+
 # first make a dataframe that has sample name and list of comma-delimited otus in it
 temp <- otu_table(physeq)
 otu_list <- vector(mode="character", length=length(colnames(temp)))

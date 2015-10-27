@@ -182,11 +182,12 @@ deSEQ <- function(data, valuetest){
 } 
 
 deSEQ_noprune <- function(data, valuetest){
+  data=prune_taxa(taxa_sums(data)>0,data)
   de_data = phyloseq_to_deseq2(data, valuetest)
   de_data2 = DESeq(de_data, test="Wald", fitType="parametric")
   res_data = results(de_data2, cooksCutoff = FALSE, contrast=c("DNA","cD","D"))
   plotMA(res_data)
-  alpha = 1
+  alpha = .05
   sig_data = res_data[which(res_data$padj < alpha), ]
   sigtab_sherm = cbind(as(sig_data, "data.frame"), as(tax_table(data)[rownames(sig_data), ], "matrix"))
 } 
@@ -219,7 +220,29 @@ plot_deSEQ <- function(deSEQdata, title){
 #################################################################################### 4 + 5
 #################################################################################### 4 + 5
 
-
+plot_deSEQ_combo <- function(deSEQdata, title){
+  y = tapply(deSEQdata$log2FoldChange, deSEQdata$Species, function(x) max(x))
+  y = sort(y, TRUE)
+  deSEQdata$Species = factor(as.character(deSEQdata$Species), levels=names(y))
+  ggplot(deSEQdata, aes(x=Phylum_plot, y=log2FoldChange, color=Phylum, size=plotvalue, shape=sig)) + 
+    geom_point(alpha=0.9) + theme_bw() +  ggtitle(title) +  
+    scale_color_manual(values = phylum.colors,name="Phylum") +
+    #    scale_color_manual(name="p-value",  breaks = c("0", "1"), labels = c("p>0.05", "p<0.05"), values = c("0" = "grey", "1"="black")) +
+    scale_shape_manual(name = "p-value", breaks = c("0", "1"), 
+                       labels = c("p>0.05", "p<0.05"),
+                       values = c("0" = 21, "1"= 19)) +
+    scale_size_continuous("abundance") +
+    scale_y_continuous(breaks=seq(-15,15,1),limits=c(-7,7)) + 
+    theme(axis.title.x = element_text(face="bold", size=16),
+          axis.text.x = element_text(angle=30, colour = "black", vjust=1, hjust = 1, size=12),
+          axis.text.y = element_text(colour = "black", size=16),
+          axis.title.y = element_text(face="bold", size=16),
+          plot.title = element_text(face="bold", size = 20),
+          legend.title = element_text(size=12, face="bold"),
+          legend.text = element_text(size = 12),
+          strip.background = element_rect(colour="black"),
+          legend.position="right")
+}
 #################################################################################### 6
 #Class 
 plot_class_deSEQ <- function(deSEQdata, title){
@@ -335,7 +358,7 @@ multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
 #################################################################################### 1
 #################################################################################### 1
 
-######################### Functions #########################
+######################### Functions for clustering #########################
 
 ## Wrapper function to cluster OTUs, cut the dendrogram into groups and plot a heatmap
 # dist.method can be spearman, bray-curtis,  or any distance metric accepted by dist()
@@ -355,7 +378,7 @@ heat_wrapper <- function(physeq, taxrank, dist.method, k) {
   groups <- cutree(clustered.otu, k = k)[clustered.otu$order]
   
   # Melt to long format
-  melted.otu <- melt(scaled.otu, varnames = c("Date", "OTU"))
+  melted.otu <- melt(scaled.otu, varnames = c("Group_cDvsD", "OTU"))
   
   # Reorder levels of OTUs to match hierarchical clustering
   otu.order <- levels(melted.otu$OTU)[clustered.otu$order]
@@ -379,7 +402,7 @@ scale_otu <- function(physeq, taxrank) {
                                 tax_table(physeq)[ ,"Species"])
   
   # Fix formatting of rownames and column names
-  rownames(scaled.otu) <- sample_data(physeq)$Date
+  rownames(scaled.otu) <- sample_data(physeq)$Group_cDvsD
   colnames(scaled.otu) <- gsub("[.]", " ", colnames(scaled.otu))
   
   return(scaled.otu)
@@ -392,7 +415,7 @@ cluster_otu <- function(data, dist.method) {
   if (dist.method == "spearman") {
     data.sim <- cor(data, method = "spearman") 
     # Conversion from spearman correlation to dissimilarity. Problematic ...
-    data.dis <- sqrt(2(1-data.sim))
+    data.dis <- sqrt(2*(1-data.sim))
     data.clust <- hclust(d = as.dist(data.dis), method = "complete")
   } else if (dist.method == "bray") {
     data.dis <- vegdist(t(data), method = "bray")
