@@ -54,7 +54,7 @@ set_ggtheme <- theme_set(theme_bw() +
                                  legend.position="right"))  #Default the legend position to the right
 
 #set taxonomy plotting colors
-group.colors <- c(Acidobacteria = "grey26", Actinobacteria = "royalblue", Alphaproteobacteria = "plum2", Armatimonadetes = "red", Bacteroidetes = "darkorange", "BD1-5" = "chartreuse", Betaproteobacteria = "slateblue2", Caldiserica = "black","Candidate_division_BRC1" = "violetred4", "Candidate_division_JS1" = "aquamarine1", "Candidate_division_OD1" = "#6DDE88", "Candidate_division_OP3" = "hotpink", "Candidate_division_OP8" = "goldenrod1", "Candidate_division_OP11" = "chocolate4", "Candidate_division_SR1" = "tan3", "Candidate_division_TM7" = "skyblue1", "Candidate_division_WS3" = "magenta", Chlamydiae="violet", Chlorobi="cyan2", Chloroflexi="darkgreen", Cyanobacteria = "chartreuse3", Deferribacteres = "slateblue3", "Deinococcus-Thermus" = "violetred", Dictyoglomi = "cornsilk4", Deltaproteobacteria = "deepskyblue", Elusimicrobia = "yellow3", Epsilonproteobacteria = "lightskyblue", Fibrobacteres = "darkred", Firmicutes = "blue4", FGL7S = "palevioletred1", Fusobacteria = "slateblue1", Gammaproteobacteria = "steelblue4", Gemmatimonadetes="black", GOUTA4 = "plum1", "Hyd24-12" = "sienna2", JTB23 = "seashell2", Nitrospirae = "yellow1", "NPL-UPA2"="#652926", OC31 = "mediumpurple4", Planctomycetes = "mediumorchid3", Proteobacteria = "chocolate1", "SHA-109" = "lightsalmon3", SM2F11 = "lightskyblue2", SPOTSOCT00m83 = "orangered", Spirochaetae = "gold3", Tenericutes="pink", Thermotogae = "chocolate1", TA06 = "lightslateblue",TA18 = "rosybrown3", TM6 = "olivedrab", Unclassified = "grey", Verrucomicrobia = "purple4", "WCHB1-60" = "palegreen", Other = "darkgrey")
+group.colors <- c(Acidobacteria = "grey26", Actinobacteria = "royalblue", Alphaproteobacteria = "plum2", Armatimonadetes = "red", Bacteroidetes = "darkorange", "BD1-5" = "chartreuse", Betaproteobacteria = "slateblue2", Caldiserica = "black","Candidate_division_BRC1" = "violetred4", "Candidate_division_JS1" = "aquamarine1", "Candidate_division_OD1" = "#6DDE88", "Candidate_division_OP3" = "hotpink", "Candidate_division_OP8" = "goldenrod1", "Candidate_division_OP11" = "chocolate4", "Candidate_division_SR1" = "tan3", "Candidate_division_TM7" = "skyblue1", "Candidate_division_WS3" = "magenta", Chlamydiae="violet", Chlorobi="cyan2", Chloroflexi="darkgreen", Cyanobacteria = "chartreuse3", Deferribacteres = "slateblue3", "Deinococcus-Thermus" = "violetred", Dictyoglomi = "cornsilk4", Deltaproteobacteria = "deepskyblue", Elusimicrobia = "yellow3", Epsilonproteobacteria = "lightskyblue", Fibrobacteres = "darkred", Firmicutes = "blue4", FGL7S = "palevioletred1", Fusobacteria = "slateblue1", Gammaproteobacteria = "steelblue4", Gemmatimonadetes="black", GOUTA4 = "plum1", "Hyd24-12" = "sienna2", JTB23 = "seashell2", Nitrospirae = "yellow1", "NPL-UPA2"="#652926", OC31 = "mediumpurple4", Planctomycetes = "mediumorchid3", Proteobacteria = "chocolate1", "SHA-109" = "lightsalmon3", SM2F11 = "lightskyblue2", SPOTSOCT00m83 = "orangered", Spirochaetae = "gold3", Tenericutes="pink", Thermotogae = "chocolate1", TA06 = "lightslateblue",TA18 = "rosybrown3", TM6 = "olivedrab", unclassified = "grey", Verrucomicrobia = "purple4", "WCHB1-60" = "palegreen", Other = "darkgrey")
 
 ######################################################################################################
 ###########################  DATA IMPORT AND NORMALIZATION  ##########################################
@@ -74,6 +74,30 @@ taxfile_rdp<-"/Users/vdenef/Documents/UMich/Papers/2015_Fujimoto_activity_Fronti
 mothurdata_rdp <- import_mothur(mothur_shared_file = sharedfile ,mothur_constaxonomy_file = taxfile_rdp )
 physeq_mothur_rdp = merge_phyloseq(mothurdata_rdp, SAMPLE)
 
+##loading FWDB+silva taxonomy
+#taxfile_fwdb<-"/Users/vdenef/Documents/UMich/Papers/2015_Fujimoto_activity_Frontiers/Data_analysis/jgi16S40kitagger.trim.contigs.good.unique.good.filter.unique.precluster.pick.pick.an.unique_list.0.03.cons.FWDB+Silva.taxonomy"
+#mothurdata_fwdb <- import_mothur(mothur_shared_file = sharedfile ,mothur_constaxonomy_file = taxfile_fwdb )
+#physeq_mothur_fwdb = merge_phyloseq(mothurdata_fwdb, SAMPLE)
+
+##replace fwdb+silva with rdp classification (cyanos are better annotated in RDP) 
+## this works but is very slow
+#for  (i in 1:length(rownames(tax_temp))){ 
+#  if (tax_temp[i,2] == "Cyanobacteria"){
+#    tax_table(physeq_mothur_fwdb)[i,4]=as.character(tax_table(physeq_mothur_rdp)[10,4])    
+#    tax_table(physeq_mothur_fwdb)[i,5]=as.character(tax_table(physeq_mothur_rdp)[i,5])   
+#    tax_table(physeq_mothur_fwdb)[i,6]=as.character(tax_table(physeq_mothur_rdp)[i,6])   
+#  } 
+#}
+## alternative is to use a ruby script
+#ruby replace_taxonomy_byOTU.rb All_rdp50taxonomy.sed.tsv 0 2 jgi16S40kitagger.trim.contigs.good.unique.good.filter.unique.precluster.pick.pick.an.unique_list.0.03.cons.FWDB+Silva.taxonomy 0 2 match1.file ##match1.file has content Cyanobacteria
+#ruby replace_taxonomy_byOTU.rb All_rdp50taxonomy.sed.tsv 0 2 jgi16S40kitagger.trim.contigs.good.unique.good.filter.unique.precluster.pick.pick.an.unique_list.0.03.cons.FWDB+Silva.taxonomy.renamed 0 2 match.file ##match.file has content Bacteria(100);unclassified
+#sed -e 's/Unclassified/unclassified/g' jgi16S40kitagger.trim.contigs.good.unique.good.filter.unique.precluster.pick.pick.an.unique_list.0.03.cons.FWDB+Silva.taxonomy.renamed.renamed > FWDB+Silva+rdp.taxonomy  
+
+#loading FWDB+silva+rdp(Cyano and unclassified)
+taxfile_fwdb<-"/Users/vdenef/Documents/UMich/Papers/2015_Fujimoto_activity_Frontiers/Data_analysis/FWDB+Silva+rdp.taxonomy"
+mothurdata_fwdb <- import_mothur(mothur_shared_file = sharedfile ,mothur_constaxonomy_file = taxfile_fwdb )
+physeq_mothur_fwdb = merge_phyloseq(mothurdata_fwdb, SAMPLE)
+
 #importing data into phyloseq
 otu_top205 <- read.table("/Users/vdenef/Documents/UMich/Papers/2015_Fujimoto_activity_Frontiers/Data_analysis/OTURF00005_number.tsv",sep="\t",header=T,row.names=1,as.is=T)
 tax_top205 <- read.table("/Users/vdenef/Documents/UMich/Papers/2015_Fujimoto_activity_Frontiers/Data_analysis/TAXARF00005CON2.tsv",sep="\t",header=T,row.names=1,as.is=T)
@@ -86,7 +110,7 @@ sampledata <- read.table("/Users/vdenef/Documents/UMich/Papers/2015_Fujimoto_act
 SAMPLE = sample_data(sampledata)
 physeq_top205 = merge_phyloseq(physeq_top205, SAMPLE)
 
-## TO DO add code used by Masa to select 205 OTUs
+## TO DO add code used by Masa to select 205 OTUs --- better to load and scale, or to sclae, then filter?
 #loading Masa's rarefied dataset (4503 seqs)
 otu_rf <- read.table("/Users/vdenef/Documents/UMich/Papers/2015_Fujimoto_activity_Frontiers/Data_analysis/Rarefy4503_otu.tsv",sep="\t",header=T,row.names=1,as.is=T)
 tax_rf <- read.table("/Users/vdenef/Documents/UMich/Papers/2015_Fujimoto_activity_Frontiers/Data_analysis/Rarefy4503_taxa_RDP.tsv",sep="\t",header=T,row.names=1,as.is=T)
@@ -101,13 +125,18 @@ physeq_rf = merge_phyloseq(physeq_rf, SAMPLE)
 
 
 #setting phyloseq object to work with
-physeq <- physeq_mothur_rdp
+physeq <- physeq_mothur_fwdb
+#physeq <- physeq_mothur_rdp
 #physeq <- physeq_top205
 #physeq <- physeq_rf
 
-# We need to change the taxonomy names
+## We need to change the taxonomy names
+#tax_table(physeq) <- cbind(tax_table(physeq),row.names(tax_table(physeq)))
+#colnames(tax_table(physeq)) <- c("Kingdom","Phylum","Class","Order","Family","Genus",Species")
+## for fwdb we need to add different headers after removing the last column, which contains no information except for 1 Verruco
+tax_table(physeq) <- tax_table(physeq)[,-8]
 tax_table(physeq) <- cbind(tax_table(physeq),row.names(tax_table(physeq)))
-colnames(tax_table(physeq)) <- c("Kingdom","Phylum","Class","Order","Family","Genus","Species")
+colnames(tax_table(physeq)) <- c("Kingdom","Phylum","Class","Order","Family","Genus","Tribe","Species")
 
 # removing non-bacterial reads
 physeq <- subset_taxa(physeq, Kingdom == "Bacteria")
@@ -123,11 +152,12 @@ paste(c("The mean sample read count is",means))
 maxs<-max(sample_sums(physeq))
 paste(c("The max sample read count is",maxs))
 
-# COMBINING BEFORE MCMURDIE HOLMES SCALING WITH OUR RAW READS using Michelle's merging by calculating means of reps
+## COMBINING BEFORE MCMURDIE HOLMES SCALING WITH OUR RAW READS using Michelle's merging by calculating means of reps
 noscale_merge <- merge_samples_mean(physeq, "Group", "floor")
+## Combining by summing instead
+#noscale_merge <- merge_samples(physeq, "Group")
 noscale_merge <- prune_taxa(taxa_sums(noscale_merge) > 0, noscale_merge)
 range_nonscale <- max(sample_sums(noscale_merge)) - min(sample_sums(noscale_merge)); range_nonscale
-
 
 #View(data.frame(sample_data(noscale_merge))) 
 
@@ -150,7 +180,11 @@ paste(c("The mean sample read count is",means))
 maxs<-max(sample_sums(raw_merged))
 paste(c("The max sample read count is",maxs))
 
+
 ### Now let's scale our read counts from our MERGED RAW data (using Michelle's function based on McMurdie and Holmes)
+#we will first prune samples with < 15k reads after summing reps
+#raw_merged <- prune_samples(sample_sums(raw_merged)>=15000, raw_merged)
+# now scale the reads
 scaled_merged <- scale_reads(raw_merged,n=min(sample_sums(raw_merged)))
 
 ##  Sample read counts with merging samples WITH SCALING!!!! 
@@ -180,11 +214,13 @@ sc_otu <- otu_table(scaled_merged)  # OTU table in our phyloseq object
 sc_tax <- tax_table(scaled_merged)  # Taxonomy Table in our phyloseq object
 merged_final <- merge_phyloseq(sc_tax, sc_otu, data_final) 
 
-## If want to limit to top taxa, then uncomment the following lines
-merged_final_toptaxa <- prune_taxa(taxa_sums(merged_final) > 190, merged_final)
+## If want to limit to top taxa, then uncomment the following lines > 0.5% on average
+merged_final_toptaxa <- prune_taxa(taxa_sums(merged_final) > 835, merged_final)
 #merged_final<-merged_final_toptaxa
 physeq_toptaxa = prune_taxa(taxa_names(merged_final_toptaxa),physeq)
 #physeq<-physeq_toptaxa
+raw_merged_toptaxa = prune_taxa(taxa_names(merged_final_toptaxa),raw_merged)
+#raw_merged<-raw_merged_toptaxa
 
 ########## ADD THE PROTEOBACTERIA TO THE PHYLA
 phy <- data.frame(tax_table(merged_final))
@@ -193,7 +229,7 @@ Class <- as.character(phy$Class)
 
 for  (i in 1:length(Phylum)){ 
   if (Phylum[i] == "Proteobacteria"){
-    if (Class[i] == "Unclassified"){
+    if (Class[i] == "unclassified"){
       Phylum[i] <- Phylum[i]       
     } else {
       Phylum[i] <- Class[i]
@@ -215,7 +251,7 @@ Class <- as.character(phy$Class)
 
 for  (i in 1:length(Phylum)){ 
   if (Phylum[i] == "Proteobacteria"){
-    if (Class[i] == "Unclassified"){
+    if (Class[i] == "unclassified"){
       Phylum[i] <- Phylum[i]       
     } else {
       Phylum[i] <- Class[i]
@@ -403,7 +439,7 @@ plot_richobs_sigs <- ggplot(richobs_try, aes(x = stat_seas_frac, y = Meanstat_se
 ######################################################################################################
 #NMDS bray-curtis
 set.seed(3)
-x <- t(sc_otu)
+x <- t(otu_table(merged_final))
 nmds_bray <- metaMDS(x, distance="bray")  #, autotransform = FALSE
 nmds_bray_df <- data.frame(nmds_bray$points) #http://strata.uga.edu/software/pdf/mdsTutorial.pdf
 nmds_bray_df$names<-row.names(nmds_bray_df) #new names column
@@ -722,6 +758,95 @@ dev.off()
 ##################################  cDNA vs DNA ######################################################
 ######################################################################################################
 
+########## cDNA:DNA PCA and biplot ##########
+#first separate otu_tables DNA and cDNA data, omit sample with no DNA match
+mf_cD<-data.frame(otu_table(subset_samples(subset_samples(merged_final,DNA == "cD"),names != "Su.EcD.110.DN")))
+mf_cD$OTU=rownames(mf_cD)
+mf_D<-data.frame(otu_table(subset_samples(merged_final,DNA == "D")))
+mf_D$OTU=rownames(mf_D)
+#combine into 1 dataframe, then divide cDNA by DNA data (adding 1 to each element to avoid zeroes)
+both = merge(mf_cD,mf_D)
+mf_cD2D = (both[, 2:48]+1) / (both[, 49:95]+1)
+rownames(mf_cD2D) = rownames(mf_D)
+mf_cD2D_log = log((both[, 2:48]+1) / (both[, 49:95]+1),2)
+rownames(mf_cD2D_log) = rownames(mf_D)
+
+cDD_pca$rotation
+# Betadiv pca
+cDD_pca <- prcomp(t(mf_cD2D), scale=TRUE)
+summary(cDD_pca)
+cDD_pca2 <- cDD_pca$x
+cDD_pca3 <- data.frame(cDD_pca2[, 1:4])
+cDD_pca3$names <- row.names(cDD_pca3)
+cDD_pca4 <- merge(cDD_pca3,data_final_df,by="names")
+for(i in 1:length(cDD_pca4$Season)){
+  cDD_pca4$Depth_Seas[i]<-paste(as.character(cDD_pca4$Depth_C[i]),
+                                  as.character(cDD_pca4$Season[i]))}
+cDD_pca_values <- cDD_pca$values
+cDD_bray_rel_eigens <- cDD_bray_values$Relative_eig
+cDD_bray_rel_eigen1 <- cDD_bray_rel_eigens[1]
+cDD_bray_rel_eigen1_percent <- round(cDD_bray_rel_eigen1 * 100, digits = 1)
+cDD_bray_rel_eigen2 <- cDD_bray_rel_eigens[2]
+cDD_bray_rel_eigen2_percent <- round(cDD_bray_rel_eigen2 * 100, digits = 1)
+cDD_bray_rel_eigen3 <- cDD_bray_rel_eigens[3]
+cDD_bray_rel_eigen3_percent <- round(cDD_bray_rel_eigen3 * 100, digits = 1)
+cDD_bray_rel_eigen4 <- cDD_bray_rel_eigens[4]
+cDD_bray_rel_eigen4_percent <- round(cDD_bray_rel_eigen4 * 100, digits = 1)
+cDD_bray_axis1 <- paste("PCoA1:",cDD_bray_rel_eigen1_percent,"%")
+cDD_bray_axis2 <- paste("PCoA2:",cDD_bray_rel_eigen2_percent,"%")
+cDD_bray_axis3 <- paste("PCoA3:",cDD_bray_rel_eigen3_percent,"%")
+cDD_bray_axis4 <- paste("PCoA4:",cDD_bray_rel_eigen4_percent,"%")
+
+pdf(file="/Users/vdenef/Documents/UMich/Papers/2015_Fujimoto_activity_Frontiers/Rplot_cDD_PCOA12_BC.pdf", width= 20, height=15, pointsize= 14)
+cDD_pcoa_BC12 <- ggplot(cDD_bray_pcoa4, aes(Axis.1, Axis.2 * -1, color = Season, shape = Station, size = Fraction, fill = Depth_Seas)) +
+  xlab(cDD_bray_axis1) + ylab(cDD_bray_axis2) + ggtitle(cDD_PCoA_title) +
+  geom_point(alpha=0.9)  + theme_bw() + #ylim(1, -1) + xlim(1, -1) +
+  scale_color_manual(name = "season", breaks=c("Sp", "Su",  "Fa"),
+                     labels = c("Spring", "Summer",  "Fall"), 
+                     values = c("Fa" = "mediumblue", "Sp" = "darkgreen", "Su" = "red")) +
+  scale_shape_manual(name = "station", breaks = c("MLB", "MM15",  "MM110"), 
+                     labels = c("MLB", "M15",  "M110"),
+                     values = c("MLB" = 21, "MM15" = 22, "MM110" = 24)) +
+  scale_size_manual(name = "fraction", breaks = c("E", "B"), 
+                     labels = c("Particle", "Free"),
+                     values = c("B" = 5, "E" = 10)) +
+  scale_fill_manual(name = "depth", breaks = c("D Sp", "D Su", "D Fa", "M Su", "S Sp", "S Su", "S Fa"), 
+                     labels = c("Deep","Deep","Deep", "Chla max", "Surface", "Surface", "Surface"),
+                     values = c("D Fa" = "mediumblue", "D Sp" = "darkgreen", "D Su" = "red", "M Su" = "orange", "S Sp" = "white", "S Su" = "white", "S Fa" = "white")) +
+  theme(axis.text.x = element_text(colour="black", vjust=0.5, size=14), 
+        axis.text.y = element_text(colour="black", vjust=0.5, size=14),
+        axis.title.x = element_text(face="bold", size=16),
+        axis.title.y = element_text(face="bold", size=16),
+        legend.title = element_text(size=12, face="bold"),
+        legend.text = element_text(size = 12),
+        ###LEGEND TOP RIGHT CORNER
+        legend.position = "right"); cDD_pcoa_BC12
+  dev.off()
+
+
+
+biplot(model)
+
+scores<-model$x
+
+scores<-model$x
+lam <- model$sdev
+n <- nrow(scores)
+lam <- lam * sqrt(n)
+
+
+ScorePC1_Scaled<-predict(model)[,1]/lam
+##Doesn’t work
+
+Scaled_Scores<-t(t(scores)/lam)
+Scaled_Scores
+##Copy and paste
+
+
+Scaled_Loadings<-t(t(model$rotation) * lam)
+##Copy and paste
+
+
 ########## cDNA:DNA PCoA ##########
 #first separate otu_tables DNA and cDNA data, omit sample with no DNA match
 mf_cD<-data.frame(otu_table(subset_samples(subset_samples(merged_final,DNA == "cD"),names != "Su.EcD.110.DN")))
@@ -828,6 +953,32 @@ phyloseq_to_adonis(cDD_physeq, distmat = cDD_norm_bray, dist = "bray","Lake")
 formula<-c("Season","Fraction","Lake","Station","Depth_C","DayNight")
 phyloseq_to_adonis(cDD_physeq, distmat = cDD_norm_bray, dist = "bray",formula)
 
+#Let's run SIMPER analysis to determine the OTU's that contribute most to the differences - we'll focus on 
+for(i in 1:length(cDD_SAM$Season)){
+  cDD_SAM$Frac_Seas[i]<-paste(as.character(cDD_SAM$Season[i]),
+                                  as.character(cDD_SAM$Fraction[i]))}
+sim <- with(cDD_SAM, simper(t(mf_cD2D), Frac_Seas))
+summary(sim)
+sim
+View(cDD_TAX)
+
+#pull out most different, highly active OTUs -- TO DO: REMOVE SAMPLES NOT MATCHED BETWEEN Sp and Su -- check names for other mismatches (DN vs DD for example), then calc diff ratios or ratio ratios and multiply times average cD signal (so needs to be added as well).
+mf_cD2D_Sp<-data.frame(otu_table(subset_samples(cDD_physeq,Season == "Sp")))
+mf_cD2D_Su<-data.frame(otu_table(subset_samples(cDD_physeq,Season == "Su")))
+mf_cD2D_Su$OTU=rownames(mf_cD2D_Sp)
+mf_cD2D_Sp$OTU=rownames(mf_cD2D_Su)
+both = merge(mf_cD2D_Sp,mf_cD2D_Su)
+mf_cD2D_Sp2Su = (both[, 2:48]+1) / (both[, 49:95]+1)
+rownames(mf_cD2D) = rownames(mf_D)
+
+#mf_cD2D_log.st = apply(mf_cD2D_log, 2, scale, center=TRUE, scale=TRUE)
+#rownames(mf_cD2D_log.st) = rownames(mf_D)
+#biplot.pcoa(cDD_bray_pcoa, Y=t(mf_cD2D_log.st), plot.axes = c(1,2), rn=NULL)
+#help(biplot.pcoa)
+
+
+
+
 ########## cDNA:DNA clustering ##########
 #One option is to identify genes that drive the PCoA spread, then plot over seasons, stations, fractions
 cDD_TAX=tax_table(merged_final_toptaxa)
@@ -866,6 +1017,37 @@ ggplot(cDD.scale$data, aes(x = Group_cDvsD, y = OTU) ) +
     )
   )
 
+########## cDNA:DNA ratio FL and PA Sp vs FL Su and Fa (without MLB?) DEseq or other stats ##########
+
+#first separate otu_tables DNA and cDNA data, omit sample with no DNA match
+mf_cD<-data.frame(otu_table(subset_samples(subset_samples(merged_final,DNA == "cD"),names != "Su.EcD.110.DN")))
+mf_cD$OTU=rownames(mf_cD)
+mf_D<-data.frame(otu_table(subset_samples(merged_final,DNA == "D")))
+mf_D$OTU=rownames(mf_D)
+#combine into 1 dataframe, then divide cDNA by DNA data (adding 1 to each element to avoid zeroes)
+both = merge(mf_cD,mf_D)
+mf_cD2D = (both[, 2:48]+1) / (both[, 49:95]+1)
+rownames(mf_cD2D) = rownames(mf_D)
+
+cDD_TAX=tax_table(merged_final)
+cDD_SAM=sample_data(subset_samples(subset_samples(merged_final,DNA == "cD"),names != "Su.EcD.110.DN"))
+cDD_OTU=otu_table(mf_cD2D,taxa_are_rows=TRUE)
+cDD_physeq = phyloseq(cDD_OTU,cDD_TAX,cDD_SAM)
+
+phylum.colors<-group.colors
+
+# deseq without pruning low abundance - otu level - per fraction - PA - no scaling (done by DEseq2!)
+cDD_PA_noMLB_noFall <- subset_samples(subset_samples(subset_samples(cDD_physeq, Station != "MLB"), Season != "Su"), Fraction != "B")
+View(tax_table(cDD_PA_noMLB_noFall))
+deseq_otu_cDD_PA_noMLB_noFall_raw <- deSEQ_noprune(cDD_PA_noMLB_noFall, ~ Season)
+deseq_otu_cDD_PA_noMLB_noFall_raw$plotvalue <- log(as.numeric(deseq_otu_cDD_PA_noMLB_noFall_raw$baseMean),2)
+deseq_otu_cDD_PA_noMLB_noFall_raw$sig <- as.factor((deseq_otu_cDD_PA_noMLB_noFall_raw$padj<0.05)*1)
+deseq_otu_cDD_PA_noMLB_noFall_plot <- plot_deSEQ(deseq_otu_cDD_PA_noMLB_noFall_raw, "OTU cDNA:DNA PA samples")
+#pdf(file="/Users/vdenef/Documents/UMich/Papers/2015_Fujimoto_activity_Frontiers/Rplot_cDvsD_PA_noscale.pdf", width= 20, height=15, pointsize= 14, useDingbats=FALSE)
+deseq_otu_cDD_PA_noMLB_noFall_plot
+#dev.off()
+
+
 ########## cDNA vs DNA DEseq ##########
 
 phylum.colors<-group.colors
@@ -874,22 +1056,23 @@ phylum.colors<-group.colors
 raw_merged_PA <- subset_samples(raw_merged, Fraction != "B")
 deseq_otu_DNAcDNA_PA_raw <- deSEQ_noprune(raw_merged_PA, ~ DNA)
 deseq_otu_DNAcDNA_PA_raw$plotvalue <- log(as.numeric(deseq_otu_DNAcDNA_PA_raw$baseMean),2)
-deseq_otu_DNAcDNA_PA_raw$sig <- as.factor((deseq_otu_DNAcDNA_PA_raw$padj<0.05)*1)
+deseq_otu_DNAcDNA_PA_raw$sig <- as.factor((deseq_otu_DNAcDNA_PA_raw$padj<0.01)*1)
 deseq_otu_DNAcDNA_plot_PA_raw <- plot_deSEQ(deseq_otu_DNAcDNA_PA_raw, "OTU cDNA:DNA PA samples")
-pdf(file="/Users/vdenef/Documents/UMich/Papers/2015_Fujimoto_activity_Frontiers/Rplot_cDvsD_PA_noscale.pdf", width= 20, height=15, pointsize= 14, useDingbats=FALSE)
+#pdf(file="/Users/vdenef/Documents/UMich/Papers/2015_Fujimoto_activity_Frontiers/Rplot_cDvsD_PA_noscale.pdf", width= 20, height=15, pointsize= 14, useDingbats=FALSE)
 deseq_otu_DNAcDNA_plot_PA_raw
-dev.off()
+#dev.off()
 
 # deseq without pruning low abundance - otu level - per fraction - FL - no scaling (done by DEseq2!)
 raw_merged_FL <- subset_samples(raw_merged, Fraction != "E")
 deseq_otu_DNAcDNA_FL_raw <- deSEQ_noprune(raw_merged_FL, ~ DNA)
 deseq_otu_DNAcDNA_FL_raw$plotvalue <- log(as.numeric(deseq_otu_DNAcDNA_FL_raw$baseMean),2)
-deseq_otu_DNAcDNA_FL_raw$sig <- as.factor((deseq_otu_DNAcDNA_FL_raw$padj<0.05)*1)
+deseq_otu_DNAcDNA_FL_raw$sig <- as.factor((deseq_otu_DNAcDNA_FL_raw$padj<0.01)*1)
 deseq_otu_DNAcDNA_plot_FL_raw <- plot_deSEQ(deseq_otu_DNAcDNA_FL_raw, "OTU cDNA:DNA FL samples")
-pdf(file="/Users/vdenef/Documents/UMich/Papers/2015_Fujimoto_activity_Frontiers/Rplot_cDvsD_FL_noscale.pdf", width= 20, height=15, pointsize= 14, useDingbats=FALSE)
+#pdf(file="/Users/vdenef/Documents/UMich/Papers/2015_Fujimoto_activity_Frontiers/Rplot_cDvsD_FL_noscale.pdf", width= 20, height=15, pointsize= 14, useDingbats=FALSE)
 deseq_otu_DNAcDNA_plot_FL_raw
-dev.off()
-
+#dev.off()
+View(deseq_otu_DNAcDNA_FL_raw)
+View(deseq_otu_DNAcDNA_PA_raw)
 #plot together
 Phylum_temp <- as.character(deseq_otu_DNAcDNA_PA_raw$Phylum)
 for  (i in 1:length(Phylum_temp)){ 

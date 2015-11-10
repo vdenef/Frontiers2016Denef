@@ -187,7 +187,7 @@ deSEQ_noprune <- function(data, valuetest){
   de_data2 = DESeq(de_data, test="Wald", fitType="parametric")
   res_data = results(de_data2, cooksCutoff = FALSE, contrast=c("DNA","cD","D"))
   plotMA(res_data)
-  alpha = .05
+  alpha = 1
   sig_data = res_data[which(res_data$padj < alpha), ]
   sigtab_sherm = cbind(as(sig_data, "data.frame"), as(tax_table(data)[rownames(sig_data), ], "matrix"))
 } 
