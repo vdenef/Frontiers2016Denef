@@ -214,13 +214,13 @@ sc_otu <- otu_table(scaled_merged)  # OTU table in our phyloseq object
 sc_tax <- tax_table(scaled_merged)  # Taxonomy Table in our phyloseq object
 merged_final <- merge_phyloseq(sc_tax, sc_otu, data_final) 
 
-## If want to limit to top taxa, then uncomment the following lines > 0.5% on average
-merged_final_toptaxa <- prune_taxa(taxa_sums(merged_final) > 835, merged_final)
-#merged_final<-merged_final_toptaxa
+## If want to limit to top taxa, then uncomment the following lines > 0.05% on average
+merged_final_toptaxa <- prune_taxa(taxa_sums(merged_final) > 215, merged_final)
+merged_final<-merged_final_toptaxa
 physeq_toptaxa = prune_taxa(taxa_names(merged_final_toptaxa),physeq)
-#physeq<-physeq_toptaxa
+physeq<-physeq_toptaxa
 raw_merged_toptaxa = prune_taxa(taxa_names(merged_final_toptaxa),raw_merged)
-#raw_merged<-raw_merged_toptaxa
+raw_merged<-raw_merged_toptaxa
 
 ########## ADD THE PROTEOBACTERIA TO THE PHYLA
 phy <- data.frame(tax_table(merged_final))
@@ -758,95 +758,6 @@ dev.off()
 ##################################  cDNA vs DNA ######################################################
 ######################################################################################################
 
-########## cDNA:DNA PCA and biplot ##########
-#first separate otu_tables DNA and cDNA data, omit sample with no DNA match
-mf_cD<-data.frame(otu_table(subset_samples(subset_samples(merged_final,DNA == "cD"),names != "Su.EcD.110.DN")))
-mf_cD$OTU=rownames(mf_cD)
-mf_D<-data.frame(otu_table(subset_samples(merged_final,DNA == "D")))
-mf_D$OTU=rownames(mf_D)
-#combine into 1 dataframe, then divide cDNA by DNA data (adding 1 to each element to avoid zeroes)
-both = merge(mf_cD,mf_D)
-mf_cD2D = (both[, 2:48]+1) / (both[, 49:95]+1)
-rownames(mf_cD2D) = rownames(mf_D)
-mf_cD2D_log = log((both[, 2:48]+1) / (both[, 49:95]+1),2)
-rownames(mf_cD2D_log) = rownames(mf_D)
-
-cDD_pca$rotation
-# Betadiv pca
-cDD_pca <- prcomp(t(mf_cD2D), scale=TRUE)
-summary(cDD_pca)
-cDD_pca2 <- cDD_pca$x
-cDD_pca3 <- data.frame(cDD_pca2[, 1:4])
-cDD_pca3$names <- row.names(cDD_pca3)
-cDD_pca4 <- merge(cDD_pca3,data_final_df,by="names")
-for(i in 1:length(cDD_pca4$Season)){
-  cDD_pca4$Depth_Seas[i]<-paste(as.character(cDD_pca4$Depth_C[i]),
-                                  as.character(cDD_pca4$Season[i]))}
-cDD_pca_values <- cDD_pca$values
-cDD_bray_rel_eigens <- cDD_bray_values$Relative_eig
-cDD_bray_rel_eigen1 <- cDD_bray_rel_eigens[1]
-cDD_bray_rel_eigen1_percent <- round(cDD_bray_rel_eigen1 * 100, digits = 1)
-cDD_bray_rel_eigen2 <- cDD_bray_rel_eigens[2]
-cDD_bray_rel_eigen2_percent <- round(cDD_bray_rel_eigen2 * 100, digits = 1)
-cDD_bray_rel_eigen3 <- cDD_bray_rel_eigens[3]
-cDD_bray_rel_eigen3_percent <- round(cDD_bray_rel_eigen3 * 100, digits = 1)
-cDD_bray_rel_eigen4 <- cDD_bray_rel_eigens[4]
-cDD_bray_rel_eigen4_percent <- round(cDD_bray_rel_eigen4 * 100, digits = 1)
-cDD_bray_axis1 <- paste("PCoA1:",cDD_bray_rel_eigen1_percent,"%")
-cDD_bray_axis2 <- paste("PCoA2:",cDD_bray_rel_eigen2_percent,"%")
-cDD_bray_axis3 <- paste("PCoA3:",cDD_bray_rel_eigen3_percent,"%")
-cDD_bray_axis4 <- paste("PCoA4:",cDD_bray_rel_eigen4_percent,"%")
-
-pdf(file="/Users/vdenef/Documents/UMich/Papers/2015_Fujimoto_activity_Frontiers/Rplot_cDD_PCOA12_BC.pdf", width= 20, height=15, pointsize= 14)
-cDD_pcoa_BC12 <- ggplot(cDD_bray_pcoa4, aes(Axis.1, Axis.2 * -1, color = Season, shape = Station, size = Fraction, fill = Depth_Seas)) +
-  xlab(cDD_bray_axis1) + ylab(cDD_bray_axis2) + ggtitle(cDD_PCoA_title) +
-  geom_point(alpha=0.9)  + theme_bw() + #ylim(1, -1) + xlim(1, -1) +
-  scale_color_manual(name = "season", breaks=c("Sp", "Su",  "Fa"),
-                     labels = c("Spring", "Summer",  "Fall"), 
-                     values = c("Fa" = "mediumblue", "Sp" = "darkgreen", "Su" = "red")) +
-  scale_shape_manual(name = "station", breaks = c("MLB", "MM15",  "MM110"), 
-                     labels = c("MLB", "M15",  "M110"),
-                     values = c("MLB" = 21, "MM15" = 22, "MM110" = 24)) +
-  scale_size_manual(name = "fraction", breaks = c("E", "B"), 
-                     labels = c("Particle", "Free"),
-                     values = c("B" = 5, "E" = 10)) +
-  scale_fill_manual(name = "depth", breaks = c("D Sp", "D Su", "D Fa", "M Su", "S Sp", "S Su", "S Fa"), 
-                     labels = c("Deep","Deep","Deep", "Chla max", "Surface", "Surface", "Surface"),
-                     values = c("D Fa" = "mediumblue", "D Sp" = "darkgreen", "D Su" = "red", "M Su" = "orange", "S Sp" = "white", "S Su" = "white", "S Fa" = "white")) +
-  theme(axis.text.x = element_text(colour="black", vjust=0.5, size=14), 
-        axis.text.y = element_text(colour="black", vjust=0.5, size=14),
-        axis.title.x = element_text(face="bold", size=16),
-        axis.title.y = element_text(face="bold", size=16),
-        legend.title = element_text(size=12, face="bold"),
-        legend.text = element_text(size = 12),
-        ###LEGEND TOP RIGHT CORNER
-        legend.position = "right"); cDD_pcoa_BC12
-  dev.off()
-
-
-
-biplot(model)
-
-scores<-model$x
-
-scores<-model$x
-lam <- model$sdev
-n <- nrow(scores)
-lam <- lam * sqrt(n)
-
-
-ScorePC1_Scaled<-predict(model)[,1]/lam
-##Doesn’t work
-
-Scaled_Scores<-t(t(scores)/lam)
-Scaled_Scores
-##Copy and paste
-
-
-Scaled_Loadings<-t(t(model$rotation) * lam)
-##Copy and paste
-
-
 ########## cDNA:DNA PCoA ##########
 #first separate otu_tables DNA and cDNA data, omit sample with no DNA match
 mf_cD<-data.frame(otu_table(subset_samples(subset_samples(merged_final,DNA == "cD"),names != "Su.EcD.110.DN")))
@@ -940,7 +851,7 @@ cDD_pcoa_BC34 <- ggplot(cDD_bray_pcoa4, aes(Axis.3, Axis.4 * -1, color = Season,
   dev.off()
 
 #Let's run ADONIS using Michelle's function
-cDD_TAX=tax_table(merged_final_toptaxa)
+cDD_TAX=tax_table(merged_final)
 cDD_SAM=sample_data(subset_samples(subset_samples(merged_final,DNA == "cD"),names != "Su.EcD.110.DN"))
 cDD_OTU=otu_table(mf_cD2D,taxa_are_rows=TRUE)
 cDD_physeq = phyloseq(cDD_OTU,cDD_TAX,cDD_SAM)
@@ -953,100 +864,309 @@ phyloseq_to_adonis(cDD_physeq, distmat = cDD_norm_bray, dist = "bray","Lake")
 formula<-c("Season","Fraction","Lake","Station","Depth_C","DayNight")
 phyloseq_to_adonis(cDD_physeq, distmat = cDD_norm_bray, dist = "bray",formula)
 
-#Let's run SIMPER analysis to determine the OTU's that contribute most to the differences - we'll focus on 
-for(i in 1:length(cDD_SAM$Season)){
-  cDD_SAM$Frac_Seas[i]<-paste(as.character(cDD_SAM$Season[i]),
-                                  as.character(cDD_SAM$Fraction[i]))}
-sim <- with(cDD_SAM, simper(t(mf_cD2D), Frac_Seas))
-summary(sim)
-sim
-View(cDD_TAX)
+####determine whether ratios in different habitats becomes increasingly different over seasonal succession
+#creat dataframe with paired bray-curtis dissimilarity and add metadat for compared samples
+cDD_norm_bray <- vegdist(t(mf_cD2D), method = "bray")  # calculates the Bray-Curtis Distances
+cDD_bray <- melt(as.matrix(cDD_norm_bray), varnames = c("samp1", "samp2"))
+cDD_bray$season1 <- substr(cDD_bray$samp1,1,2) # Create a new column called season1 with first 2 letters of string
+cDD_bray$season2 <- substr(cDD_bray$samp2,1,2) # Create a new column called season2 with first 2 letters of string
+cDD_bray$fraction1 <- substr(cDD_bray$samp1,4,4) # Create a new column called fraction1 with letter 4 of string
+cDD_bray$fraction2 <- substr(cDD_bray$samp2,4,4) # Create a new column called fraction2 with letter 4 of string
+cDD_bray$station1 <- unlist(strsplit(toString(cDD_bray$samp1), "[., ]"))[seq(3,length(unlist(strsplit(toString(cDD_bray$samp1), split="[., ]"))),5)] # Create a new column called station1 with staton name
+cDD_bray$station2 <- unlist(strsplit(toString(cDD_bray$samp2), "[., ]"))[seq(3,length(unlist(strsplit(toString(cDD_bray$samp2), split="[., ]"))),5)] # Create a new column called station2 with staton name
+cDD_bray$depth1 <- substr(unlist(strsplit(toString(cDD_bray$samp1), "[., ]"))[seq(4,length(unlist(strsplit(toString(cDD_bray$samp1), split="[., ]"))),5)],1,1) # Create a new column called depth1 with depth
+cDD_bray$depth2 <- substr(unlist(strsplit(toString(cDD_bray$samp2), "[., ]"))[seq(4,length(unlist(strsplit(toString(cDD_bray$samp2), split="[., ]"))),5)],1,1) # Create a new column called depth2 with depth
 
-#pull out most different, highly active OTUs -- TO DO: REMOVE SAMPLES NOT MATCHED BETWEEN Sp and Su -- check names for other mismatches (DN vs DD for example), then calc diff ratios or ratio ratios and multiply times average cD signal (so needs to be added as well).
-mf_cD2D_Sp<-data.frame(otu_table(subset_samples(cDD_physeq,Season == "Sp")))
-mf_cD2D_Su<-data.frame(otu_table(subset_samples(cDD_physeq,Season == "Su")))
-mf_cD2D_Su$OTU=rownames(mf_cD2D_Sp)
-mf_cD2D_Sp$OTU=rownames(mf_cD2D_Su)
-both = merge(mf_cD2D_Sp,mf_cD2D_Su)
-mf_cD2D_Sp2Su = (both[, 2:48]+1) / (both[, 49:95]+1)
-rownames(mf_cD2D) = rownames(mf_D)
+#combine category names to group similar comparisons
+cDD_bray$compstat[cDD_bray$season1=="Sp"&cDD_bray$season2=="Sp"&cDD_bray$station1=="MLB"&cDD_bray$station2=="MLB"]<-"Sp_MLB"
+cDD_bray$compstat[cDD_bray$season1=="Sp"&cDD_bray$season2=="Sp"&cDD_bray$station1=="15"&cDD_bray$station2=="15"]<-"Sp_15"
+cDD_bray$compstat[cDD_bray$season1=="Sp"&cDD_bray$season2=="Sp"&cDD_bray$station1=="110"&cDD_bray$station2=="110"]<-"Sp_110"
+cDD_bray$compstat[cDD_bray$season1=="Sp"&cDD_bray$season2=="Sp"&cDD_bray$station1=="MLB"&cDD_bray$station2=="15"]<-"Sp_MLB-15"
+cDD_bray$compstat[cDD_bray$season1=="Sp"&cDD_bray$season2=="Sp"&cDD_bray$station1=="MLB"&cDD_bray$station2=="110"]<-"Sp_MLB-110"
+cDD_bray$compstat[cDD_bray$season1=="Sp"&cDD_bray$season2=="Sp"&cDD_bray$station1=="15"&cDD_bray$station2=="110"]<-"Sp_15-110"
+cDD_bray$compstat[cDD_bray$season1=="Sp"&cDD_bray$season2=="Sp"&cDD_bray$station1=="15"&cDD_bray$station2=="MLB"]<-"Sp_MLB-15"
+cDD_bray$compstat[cDD_bray$season1=="Sp"&cDD_bray$season2=="Sp"&cDD_bray$station1=="110"&cDD_bray$station2=="MLB"]<-"Sp_MLB-110"
+cDD_bray$compstat[cDD_bray$season1=="Sp"&cDD_bray$season2=="Sp"&cDD_bray$station1=="110"&cDD_bray$station2=="15"]<-"Sp_15-110"
 
-#mf_cD2D_log.st = apply(mf_cD2D_log, 2, scale, center=TRUE, scale=TRUE)
-#rownames(mf_cD2D_log.st) = rownames(mf_D)
-#biplot.pcoa(cDD_bray_pcoa, Y=t(mf_cD2D_log.st), plot.axes = c(1,2), rn=NULL)
-#help(biplot.pcoa)
+cDD_bray$compfrac[cDD_bray$season1=="Sp"&cDD_bray$season2=="Sp"&cDD_bray$fraction1=="B"&cDD_bray$fraction2=="B"]<-"Sp_FL"
+cDD_bray$compfrac[cDD_bray$season1=="Sp"&cDD_bray$season2=="Sp"&cDD_bray$fraction1=="E"&cDD_bray$fraction2=="E"]<-"Sp_PA"
+cDD_bray$compfrac[cDD_bray$season1=="Sp"&cDD_bray$season2=="Sp"&cDD_bray$fraction1=="B"&cDD_bray$fraction2=="E"]<-"Sp_FL-PA"
+cDD_bray$compfrac[cDD_bray$season1=="Sp"&cDD_bray$season2=="Sp"&cDD_bray$fraction1=="E"&cDD_bray$fraction2=="B"]<-"Sp_FL-PA"
+
+cDD_bray$compdepth[cDD_bray$season1=="Sp"&cDD_bray$season2=="Sp"&cDD_bray$depth1=="S"&cDD_bray$depth2=="S"]<-"Sp_Surf"
+cDD_bray$compdepth[cDD_bray$season1=="Sp"&cDD_bray$season2=="Sp"&cDD_bray$depth1=="D"&cDD_bray$depth2=="D"]<-"Sp_Deep"
+cDD_bray$compdepth[cDD_bray$season1=="Sp"&cDD_bray$season2=="Sp"&cDD_bray$depth1=="S"&cDD_bray$depth2=="D"]<-"Sp_Surf-Deep"
+cDD_bray$compdepth[cDD_bray$season1=="Sp"&cDD_bray$season2=="Sp"&cDD_bray$depth1=="D"&cDD_bray$depth2=="S"]<-"Sp_Surf-Deep"
+
+cDD_bray$compstat[cDD_bray$season1=="Su"&cDD_bray$season2=="Su"&cDD_bray$station1=="MLB"&cDD_bray$station2=="MLB"]<-"Su_MLB"
+cDD_bray$compstat[cDD_bray$season1=="Su"&cDD_bray$season2=="Su"&cDD_bray$station1=="15"&cDD_bray$station2=="15"]<-"Su_15"
+cDD_bray$compstat[cDD_bray$season1=="Su"&cDD_bray$season2=="Su"&cDD_bray$station1=="110"&cDD_bray$station2=="110"]<-"Su_110"
+cDD_bray$compstat[cDD_bray$season1=="Su"&cDD_bray$season2=="Su"&cDD_bray$station1=="MLB"&cDD_bray$station2=="15"]<-"Su_MLB-15"
+cDD_bray$compstat[cDD_bray$season1=="Su"&cDD_bray$season2=="Su"&cDD_bray$station1=="MLB"&cDD_bray$station2=="110"]<-"Su_MLB-110"
+cDD_bray$compstat[cDD_bray$season1=="Su"&cDD_bray$season2=="Su"&cDD_bray$station1=="15"&cDD_bray$station2=="110"]<-"Su_15-110"
+cDD_bray$compstat[cDD_bray$season1=="Su"&cDD_bray$season2=="Su"&cDD_bray$station1=="15"&cDD_bray$station2=="MLB"]<-"Su_MLB-15"
+cDD_bray$compstat[cDD_bray$season1=="Su"&cDD_bray$season2=="Su"&cDD_bray$station1=="110"&cDD_bray$station2=="MLB"]<-"Su_MLB-110"
+cDD_bray$compstat[cDD_bray$season1=="Su"&cDD_bray$season2=="Su"&cDD_bray$station1=="110"&cDD_bray$station2=="15"]<-"Su_15-110"
+
+cDD_bray$compfrac[cDD_bray$season1=="Su"&cDD_bray$season2=="Su"&cDD_bray$fraction1=="B"&cDD_bray$fraction2=="B"]<-"Su_FL"
+cDD_bray$compfrac[cDD_bray$season1=="Su"&cDD_bray$season2=="Su"&cDD_bray$fraction1=="E"&cDD_bray$fraction2=="E"]<-"Su_PA"
+cDD_bray$compfrac[cDD_bray$season1=="Su"&cDD_bray$season2=="Su"&cDD_bray$fraction1=="B"&cDD_bray$fraction2=="E"]<-"Su_FL-PA"
+cDD_bray$compfrac[cDD_bray$season1=="Su"&cDD_bray$season2=="Su"&cDD_bray$fraction1=="E"&cDD_bray$fraction2=="B"]<-"Su_FL-PA"
+
+cDD_bray$compdepth[cDD_bray$season1=="Su"&cDD_bray$season2=="Su"&cDD_bray$depth1=="S"&cDD_bray$depth2=="S"]<-"Su_Surf"
+cDD_bray$compdepth[cDD_bray$season1=="Su"&cDD_bray$season2=="Su"&cDD_bray$depth1=="D"&cDD_bray$depth2=="D"]<-"Su_Deep"
+cDD_bray$compdepth[cDD_bray$season1=="Su"&cDD_bray$season2=="Su"&cDD_bray$depth1=="S"&cDD_bray$depth2=="D"]<-"Su_Surf-Deep"
+cDD_bray$compdepth[cDD_bray$season1=="Su"&cDD_bray$season2=="Su"&cDD_bray$depth1=="D"&cDD_bray$depth2=="S"]<-"Su_Surf-Deep"
+
+cDD_bray$compstat[cDD_bray$season1=="Fa"&cDD_bray$season2=="Fa"&cDD_bray$station1=="MLB"&cDD_bray$station2=="MLB"]<-"Fa_MLB"
+cDD_bray$compstat[cDD_bray$season1=="Fa"&cDD_bray$season2=="Fa"&cDD_bray$station1=="15"&cDD_bray$station2=="15"]<-"Fa_15"
+cDD_bray$compstat[cDD_bray$season1=="Fa"&cDD_bray$season2=="Fa"&cDD_bray$station1=="110"&cDD_bray$station2=="110"]<-"Fa_110"
+cDD_bray$compstat[cDD_bray$season1=="Fa"&cDD_bray$season2=="Fa"&cDD_bray$station1=="MLB"&cDD_bray$station2=="15"]<-"Fa_MLB-15"
+cDD_bray$compstat[cDD_bray$season1=="Fa"&cDD_bray$season2=="Fa"&cDD_bray$station1=="MLB"&cDD_bray$station2=="110"]<-"Fa_MLB-110"
+cDD_bray$compstat[cDD_bray$season1=="Fa"&cDD_bray$season2=="Fa"&cDD_bray$station1=="15"&cDD_bray$station2=="110"]<-"Fa_15-110"
+cDD_bray$compstat[cDD_bray$season1=="Fa"&cDD_bray$season2=="Fa"&cDD_bray$station1=="15"&cDD_bray$station2=="MLB"]<-"Fa_MLB-15"
+cDD_bray$compstat[cDD_bray$season1=="Fa"&cDD_bray$season2=="Fa"&cDD_bray$station1=="110"&cDD_bray$station2=="MLB"]<-"Fa_MLB-110"
+cDD_bray$compstat[cDD_bray$season1=="Fa"&cDD_bray$season2=="Fa"&cDD_bray$station1=="110"&cDD_bray$station2=="15"]<-"Fa_15-110"
+
+cDD_bray$compfrac[cDD_bray$season1=="Fa"&cDD_bray$season2=="Fa"&cDD_bray$fraction1=="B"&cDD_bray$fraction2=="B"]<-"Fa_FL"
+cDD_bray$compfrac[cDD_bray$season1=="Fa"&cDD_bray$season2=="Fa"&cDD_bray$fraction1=="E"&cDD_bray$fraction2=="E"]<-"Fa_PA"
+cDD_bray$compfrac[cDD_bray$season1=="Fa"&cDD_bray$season2=="Fa"&cDD_bray$fraction1=="B"&cDD_bray$fraction2=="E"]<-"Fa_FL-PA"
+cDD_bray$compfrac[cDD_bray$season1=="Fa"&cDD_bray$season2=="Fa"&cDD_bray$fraction1=="E"&cDD_bray$fraction2=="B"]<-"Fa_FL-PA"
+
+cDD_bray$compdepth[cDD_bray$season1=="Fa"&cDD_bray$season2=="Fa"&cDD_bray$depth1=="S"&cDD_bray$depth2=="S"]<-"Fa_Surf"
+cDD_bray$compdepth[cDD_bray$season1=="Fa"&cDD_bray$season2=="Fa"&cDD_bray$depth1=="D"&cDD_bray$depth2=="D"]<-"Fa_Deep"
+cDD_bray$compdepth[cDD_bray$season1=="Fa"&cDD_bray$season2=="Fa"&cDD_bray$depth1=="S"&cDD_bray$depth2=="D"]<-"Fa_Surf-Deep"
+cDD_bray$compdepth[cDD_bray$season1=="Fa"&cDD_bray$season2=="Fa"&cDD_bray$depth1=="D"&cDD_bray$depth2=="S"]<-"Fa_Surf-Deep"
+
+cDD_bray$compstat[cDD_bray$season1=="Sp"&cDD_bray$season2=="Su"&cDD_bray$station1=="MLB"&cDD_bray$station2=="MLB"]<-"Sp-Su_MLB"
+cDD_bray$compstat[cDD_bray$season1=="Sp"&cDD_bray$season2=="Su"&cDD_bray$station1=="15"&cDD_bray$station2=="15"]<-"Sp-Su_15"
+cDD_bray$compstat[cDD_bray$season1=="Sp"&cDD_bray$season2=="Su"&cDD_bray$station1=="110"&cDD_bray$station2=="110"]<-"Sp-Su_110"
+cDD_bray$compstat[cDD_bray$season1=="Sp"&cDD_bray$season2=="Su"&cDD_bray$station1=="MLB"&cDD_bray$station2=="15"]<-"Sp-Su_MLB-15"
+cDD_bray$compstat[cDD_bray$season1=="Sp"&cDD_bray$season2=="Su"&cDD_bray$station1=="MLB"&cDD_bray$station2=="110"]<-"Sp-Su_MLB-110"
+cDD_bray$compstat[cDD_bray$season1=="Sp"&cDD_bray$season2=="Su"&cDD_bray$station1=="15"&cDD_bray$station2=="110"]<-"Sp-Su_15-110"
+cDD_bray$compstat[cDD_bray$season1=="Sp"&cDD_bray$season2=="Su"&cDD_bray$station1=="15"&cDD_bray$station2=="MLB"]<-"Sp-Su_MLB-15"
+cDD_bray$compstat[cDD_bray$season1=="Sp"&cDD_bray$season2=="Su"&cDD_bray$station1=="110"&cDD_bray$station2=="MLB"]<-"Sp-Su_MLB-110"
+cDD_bray$compstat[cDD_bray$season1=="Sp"&cDD_bray$season2=="Su"&cDD_bray$station1=="110"&cDD_bray$station2=="15"]<-"Sp-Su_15-110"
+
+cDD_bray$compfrac[cDD_bray$season1=="Sp"&cDD_bray$season2=="Su"&cDD_bray$fraction1=="B"&cDD_bray$fraction2=="B"]<-"Sp-Su_FL"
+cDD_bray$compfrac[cDD_bray$season1=="Sp"&cDD_bray$season2=="Su"&cDD_bray$fraction1=="E"&cDD_bray$fraction2=="E"]<-"Sp-Su_PA"
+cDD_bray$compfrac[cDD_bray$season1=="Sp"&cDD_bray$season2=="Su"&cDD_bray$fraction1=="B"&cDD_bray$fraction2=="E"]<-"Sp-Su_FL-PA"
+cDD_bray$compfrac[cDD_bray$season1=="Sp"&cDD_bray$season2=="Su"&cDD_bray$fraction1=="E"&cDD_bray$fraction2=="B"]<-"Sp-Su_FL-PA"
+
+cDD_bray$compdepth[cDD_bray$season1=="Sp"&cDD_bray$season2=="Su"&cDD_bray$depth1=="S"&cDD_bray$depth2=="S"]<-"Sp-Su_Surf"
+cDD_bray$compdepth[cDD_bray$season1=="Sp"&cDD_bray$season2=="Su"&cDD_bray$depth1=="D"&cDD_bray$depth2=="D"]<-"Sp-Su_Deep"
+cDD_bray$compdepth[cDD_bray$season1=="Sp"&cDD_bray$season2=="Su"&cDD_bray$depth1=="S"&cDD_bray$depth2=="D"]<-"Sp-Su_Surf-Deep"
+cDD_bray$compdepth[cDD_bray$season1=="Sp"&cDD_bray$season2=="Su"&cDD_bray$depth1=="D"&cDD_bray$depth2=="S"]<-"Sp-Su_Surf-Deep"
+
+cDD_bray$compstat[cDD_bray$season1=="Su"&cDD_bray$season2=="Sp"&cDD_bray$station1=="MLB"&cDD_bray$station2=="MLB"]<-"Sp-Su_MLB"
+cDD_bray$compstat[cDD_bray$season1=="Su"&cDD_bray$season2=="Sp"&cDD_bray$station1=="15"&cDD_bray$station2=="15"]<-"Sp-Su_15"
+cDD_bray$compstat[cDD_bray$season1=="Su"&cDD_bray$season2=="Sp"&cDD_bray$station1=="110"&cDD_bray$station2=="110"]<-"Sp-Su_110"
+cDD_bray$compstat[cDD_bray$season1=="Su"&cDD_bray$season2=="Sp"&cDD_bray$station1=="MLB"&cDD_bray$station2=="15"]<-"Sp-Su_MLB-15"
+cDD_bray$compstat[cDD_bray$season1=="Su"&cDD_bray$season2=="Sp"&cDD_bray$station1=="MLB"&cDD_bray$station2=="110"]<-"Sp-Su_MLB-110"
+cDD_bray$compstat[cDD_bray$season1=="Su"&cDD_bray$season2=="Sp"&cDD_bray$station1=="15"&cDD_bray$station2=="110"]<-"Sp-Su_15-110"
+cDD_bray$compstat[cDD_bray$season1=="Su"&cDD_bray$season2=="Sp"&cDD_bray$station1=="15"&cDD_bray$station2=="MLB"]<-"Sp-Su_MLB-15"
+cDD_bray$compstat[cDD_bray$season1=="Su"&cDD_bray$season2=="Sp"&cDD_bray$station1=="110"&cDD_bray$station2=="MLB"]<-"Sp-Su_MLB-110"
+cDD_bray$compstat[cDD_bray$season1=="Su"&cDD_bray$season2=="Sp"&cDD_bray$station1=="110"&cDD_bray$station2=="15"]<-"Sp-Su_15-110"
+
+cDD_bray$compfrac[cDD_bray$season1=="Su"&cDD_bray$season2=="Sp"&cDD_bray$fraction1=="B"&cDD_bray$fraction2=="B"]<-"Sp-Su_FL"
+cDD_bray$compfrac[cDD_bray$season1=="Su"&cDD_bray$season2=="Sp"&cDD_bray$fraction1=="E"&cDD_bray$fraction2=="E"]<-"Sp-Su_PA"
+cDD_bray$compfrac[cDD_bray$season1=="Su"&cDD_bray$season2=="Sp"&cDD_bray$fraction1=="B"&cDD_bray$fraction2=="E"]<-"Sp-Su_FL-PA"
+cDD_bray$compfrac[cDD_bray$season1=="Su"&cDD_bray$season2=="Sp"&cDD_bray$fraction1=="E"&cDD_bray$fraction2=="B"]<-"Sp-Su_FL-PA"
+
+cDD_bray$compdepth[cDD_bray$season1=="Su"&cDD_bray$season2=="Sp"&cDD_bray$depth1=="S"&cDD_bray$depth2=="S"]<-"Sp-Su_Surf"
+cDD_bray$compdepth[cDD_bray$season1=="Su"&cDD_bray$season2=="Sp"&cDD_bray$depth1=="D"&cDD_bray$depth2=="D"]<-"Sp-Su_Deep"
+cDD_bray$compdepth[cDD_bray$season1=="Su"&cDD_bray$season2=="Sp"&cDD_bray$depth1=="S"&cDD_bray$depth2=="D"]<-"Sp-Su_Surf-Deep"
+cDD_bray$compdepth[cDD_bray$season1=="Su"&cDD_bray$season2=="Sp"&cDD_bray$depth1=="D"&cDD_bray$depth2=="S"]<-"Sp-Su_Surf-Deep"
+
+cDD_bray$compstat[cDD_bray$season1=="Sp"&cDD_bray$season2=="Fa"&cDD_bray$station1=="MLB"&cDD_bray$station2=="MLB"]<-"Sp-Fa_MLB"
+cDD_bray$compstat[cDD_bray$season1=="Sp"&cDD_bray$season2=="Fa"&cDD_bray$station1=="15"&cDD_bray$station2=="15"]<-"Sp-Fa_15"
+cDD_bray$compstat[cDD_bray$season1=="Sp"&cDD_bray$season2=="Fa"&cDD_bray$station1=="110"&cDD_bray$station2=="110"]<-"Sp-Fa_110"
+cDD_bray$compstat[cDD_bray$season1=="Sp"&cDD_bray$season2=="Fa"&cDD_bray$station1=="MLB"&cDD_bray$station2=="15"]<-"Sp-Fa_MLB-15"
+cDD_bray$compstat[cDD_bray$season1=="Sp"&cDD_bray$season2=="Fa"&cDD_bray$station1=="MLB"&cDD_bray$station2=="110"]<-"Sp-Fa_MLB-110"
+cDD_bray$compstat[cDD_bray$season1=="Sp"&cDD_bray$season2=="Fa"&cDD_bray$station1=="15"&cDD_bray$station2=="110"]<-"Sp-Fa_15-110"
+cDD_bray$compstat[cDD_bray$season1=="Sp"&cDD_bray$season2=="Fa"&cDD_bray$station1=="15"&cDD_bray$station2=="MLB"]<-"Sp-Fa_MLB-15"
+cDD_bray$compstat[cDD_bray$season1=="Sp"&cDD_bray$season2=="Fa"&cDD_bray$station1=="110"&cDD_bray$station2=="MLB"]<-"Sp-Fa_MLB-110"
+cDD_bray$compstat[cDD_bray$season1=="Sp"&cDD_bray$season2=="Fa"&cDD_bray$station1=="110"&cDD_bray$station2=="15"]<-"Sp-Fa_15-110"
+
+cDD_bray$compfrac[cDD_bray$season1=="Sp"&cDD_bray$season2=="Fa"&cDD_bray$fraction1=="B"&cDD_bray$fraction2=="B"]<-"Sp-Fa_FL"
+cDD_bray$compfrac[cDD_bray$season1=="Sp"&cDD_bray$season2=="Fa"&cDD_bray$fraction1=="E"&cDD_bray$fraction2=="E"]<-"Sp-Fa_PA"
+cDD_bray$compfrac[cDD_bray$season1=="Sp"&cDD_bray$season2=="Fa"&cDD_bray$fraction1=="B"&cDD_bray$fraction2=="E"]<-"Sp-Fa_FL-PA"
+cDD_bray$compfrac[cDD_bray$season1=="Sp"&cDD_bray$season2=="Fa"&cDD_bray$fraction1=="E"&cDD_bray$fraction2=="B"]<-"Sp-Fa_FL-PA"
+
+cDD_bray$compdepth[cDD_bray$season1=="Sp"&cDD_bray$season2=="Fa"&cDD_bray$depth1=="S"&cDD_bray$depth2=="S"]<-"Sp-Fa_Surf"
+cDD_bray$compdepth[cDD_bray$season1=="Sp"&cDD_bray$season2=="Fa"&cDD_bray$depth1=="D"&cDD_bray$depth2=="D"]<-"Sp-Fa_Deep"
+cDD_bray$compdepth[cDD_bray$season1=="Sp"&cDD_bray$season2=="Fa"&cDD_bray$depth1=="S"&cDD_bray$depth2=="D"]<-"Sp-Fa_Surf-Deep"
+cDD_bray$compdepth[cDD_bray$season1=="Sp"&cDD_bray$season2=="Fa"&cDD_bray$depth1=="D"&cDD_bray$depth2=="S"]<-"Sp-Fa_Surf-Deep"
+
+cDD_bray$compstat[cDD_bray$season1=="Fa"&cDD_bray$season2=="Sp"&cDD_bray$station1=="MLB"&cDD_bray$station2=="MLB"]<-"Sp-Fa_MLB"
+cDD_bray$compstat[cDD_bray$season1=="Fa"&cDD_bray$season2=="Sp"&cDD_bray$station1=="15"&cDD_bray$station2=="15"]<-"Sp-Fa_15"
+cDD_bray$compstat[cDD_bray$season1=="Fa"&cDD_bray$season2=="Sp"&cDD_bray$station1=="110"&cDD_bray$station2=="110"]<-"Sp-Fa_110"
+cDD_bray$compstat[cDD_bray$season1=="Fa"&cDD_bray$season2=="Sp"&cDD_bray$station1=="MLB"&cDD_bray$station2=="15"]<-"Sp-Fa_MLB-15"
+cDD_bray$compstat[cDD_bray$season1=="Fa"&cDD_bray$season2=="Sp"&cDD_bray$station1=="MLB"&cDD_bray$station2=="110"]<-"Sp-Fa_MLB-110"
+cDD_bray$compstat[cDD_bray$season1=="Fa"&cDD_bray$season2=="Sp"&cDD_bray$station1=="15"&cDD_bray$station2=="110"]<-"Sp-Fa_15-110"
+cDD_bray$compstat[cDD_bray$season1=="Fa"&cDD_bray$season2=="Sp"&cDD_bray$station1=="15"&cDD_bray$station2=="MLB"]<-"Sp-Fa_MLB-15"
+cDD_bray$compstat[cDD_bray$season1=="Fa"&cDD_bray$season2=="Sp"&cDD_bray$station1=="110"&cDD_bray$station2=="MLB"]<-"Sp-Fa_MLB-110"
+cDD_bray$compstat[cDD_bray$season1=="Fa"&cDD_bray$season2=="Sp"&cDD_bray$station1=="110"&cDD_bray$station2=="15"]<-"Sp-Fa_15-110"
+
+cDD_bray$compfrac[cDD_bray$season1=="Fa"&cDD_bray$season2=="Sp"&cDD_bray$fraction1=="B"&cDD_bray$fraction2=="B"]<-"Sp-Fa_FL"
+cDD_bray$compfrac[cDD_bray$season1=="Fa"&cDD_bray$season2=="Sp"&cDD_bray$fraction1=="E"&cDD_bray$fraction2=="E"]<-"Sp-Fa_PA"
+cDD_bray$compfrac[cDD_bray$season1=="Fa"&cDD_bray$season2=="Sp"&cDD_bray$fraction1=="B"&cDD_bray$fraction2=="E"]<-"Sp-Fa_FL-PA"
+cDD_bray$compfrac[cDD_bray$season1=="Fa"&cDD_bray$season2=="Sp"&cDD_bray$fraction1=="E"&cDD_bray$fraction2=="B"]<-"Sp-Fa_FL-PA"
+
+cDD_bray$compdepth[cDD_bray$season1=="Fa"&cDD_bray$season2=="Sp"&cDD_bray$depth1=="S"&cDD_bray$depth2=="S"]<-"Sp-Fa_Surf"
+cDD_bray$compdepth[cDD_bray$season1=="Fa"&cDD_bray$season2=="Sp"&cDD_bray$depth1=="D"&cDD_bray$depth2=="D"]<-"Sp-Fa_Deep"
+cDD_bray$compdepth[cDD_bray$season1=="Fa"&cDD_bray$season2=="Sp"&cDD_bray$depth1=="S"&cDD_bray$depth2=="D"]<-"Sp-Fa_Surf-Deep"
+cDD_bray$compdepth[cDD_bray$season1=="Fa"&cDD_bray$season2=="Sp"&cDD_bray$depth1=="D"&cDD_bray$depth2=="S"]<-"Sp-Fa_Surf-Deep"
+
+cDD_bray$compstat[cDD_bray$season1=="Su"&cDD_bray$season2=="Fa"&cDD_bray$station1=="MLB"&cDD_bray$station2=="MLB"]<-"Su-Fa_MLB"
+cDD_bray$compstat[cDD_bray$season1=="Su"&cDD_bray$season2=="Fa"&cDD_bray$station1=="15"&cDD_bray$station2=="15"]<-"Su-Fa_15"
+cDD_bray$compstat[cDD_bray$season1=="Su"&cDD_bray$season2=="Fa"&cDD_bray$station1=="110"&cDD_bray$station2=="110"]<-"Su-Fa_110"
+cDD_bray$compstat[cDD_bray$season1=="Su"&cDD_bray$season2=="Fa"&cDD_bray$station1=="MLB"&cDD_bray$station2=="15"]<-"Su-Fa_MLB-15"
+cDD_bray$compstat[cDD_bray$season1=="Su"&cDD_bray$season2=="Fa"&cDD_bray$station1=="MLB"&cDD_bray$station2=="110"]<-"Su-Fa_MLB-110"
+cDD_bray$compstat[cDD_bray$season1=="Su"&cDD_bray$season2=="Fa"&cDD_bray$station1=="15"&cDD_bray$station2=="110"]<-"Su-Fa_15-110"
+cDD_bray$compstat[cDD_bray$season1=="Su"&cDD_bray$season2=="Fa"&cDD_bray$station1=="15"&cDD_bray$station2=="MLB"]<-"Su-Fa_MLB-15"
+cDD_bray$compstat[cDD_bray$season1=="Su"&cDD_bray$season2=="Fa"&cDD_bray$station1=="110"&cDD_bray$station2=="MLB"]<-"Su-Fa_MLB-110"
+cDD_bray$compstat[cDD_bray$season1=="Su"&cDD_bray$season2=="Fa"&cDD_bray$station1=="110"&cDD_bray$station2=="15"]<-"Su-Fa_15-110"
+
+cDD_bray$compfrac[cDD_bray$season1=="Su"&cDD_bray$season2=="Fa"&cDD_bray$fraction1=="B"&cDD_bray$fraction2=="B"]<-"Su-Fa_FL"
+cDD_bray$compfrac[cDD_bray$season1=="Su"&cDD_bray$season2=="Fa"&cDD_bray$fraction1=="E"&cDD_bray$fraction2=="E"]<-"Su-Fa_PA"
+cDD_bray$compfrac[cDD_bray$season1=="Su"&cDD_bray$season2=="Fa"&cDD_bray$fraction1=="B"&cDD_bray$fraction2=="E"]<-"Su-Fa_FL-PA"
+cDD_bray$compfrac[cDD_bray$season1=="Su"&cDD_bray$season2=="Fa"&cDD_bray$fraction1=="E"&cDD_bray$fraction2=="B"]<-"Su-Fa_FL-PA"
+
+cDD_bray$compdepth[cDD_bray$season1=="Su"&cDD_bray$season2=="Fa"&cDD_bray$depth1=="S"&cDD_bray$depth2=="S"]<-"Su-Fa_Surf"
+cDD_bray$compdepth[cDD_bray$season1=="Su"&cDD_bray$season2=="Fa"&cDD_bray$depth1=="D"&cDD_bray$depth2=="D"]<-"Su-Fa_Deep"
+cDD_bray$compdepth[cDD_bray$season1=="Su"&cDD_bray$season2=="Fa"&cDD_bray$depth1=="S"&cDD_bray$depth2=="D"]<-"Su-Fa_Surf-Deep"
+cDD_bray$compdepth[cDD_bray$season1=="Su"&cDD_bray$season2=="Fa"&cDD_bray$depth1=="D"&cDD_bray$depth2=="S"]<-"Su-Fa_Surf-Deep"
+
+cDD_bray$compstat[cDD_bray$season1=="Fa"&cDD_bray$season2=="Su"&cDD_bray$station1=="MLB"&cDD_bray$station2=="MLB"]<-"Su-Fa_MLB"
+cDD_bray$compstat[cDD_bray$season1=="Fa"&cDD_bray$season2=="Su"&cDD_bray$station1=="15"&cDD_bray$station2=="15"]<-"Su-Fa_15"
+cDD_bray$compstat[cDD_bray$season1=="Fa"&cDD_bray$season2=="Su"&cDD_bray$station1=="110"&cDD_bray$station2=="110"]<-"Su-Fa_110"
+cDD_bray$compstat[cDD_bray$season1=="Fa"&cDD_bray$season2=="Su"&cDD_bray$station1=="MLB"&cDD_bray$station2=="15"]<-"Su-Fa_MLB-15"
+cDD_bray$compstat[cDD_bray$season1=="Fa"&cDD_bray$season2=="Su"&cDD_bray$station1=="MLB"&cDD_bray$station2=="110"]<-"Su-Fa_MLB-110"
+cDD_bray$compstat[cDD_bray$season1=="Fa"&cDD_bray$season2=="Su"&cDD_bray$station1=="15"&cDD_bray$station2=="110"]<-"Su-Fa_15-110"
+cDD_bray$compstat[cDD_bray$season1=="Fa"&cDD_bray$season2=="Su"&cDD_bray$station1=="15"&cDD_bray$station2=="MLB"]<-"Su-Fa_MLB-15"
+cDD_bray$compstat[cDD_bray$season1=="Fa"&cDD_bray$season2=="Su"&cDD_bray$station1=="110"&cDD_bray$station2=="MLB"]<-"Su-Fa_MLB-110"
+cDD_bray$compstat[cDD_bray$season1=="Fa"&cDD_bray$season2=="Su"&cDD_bray$station1=="110"&cDD_bray$station2=="15"]<-"Su-Fa_15-110"
+
+cDD_bray$compfrac[cDD_bray$season1=="Fa"&cDD_bray$season2=="Su"&cDD_bray$fraction1=="B"&cDD_bray$fraction2=="B"]<-"Su-Fa_FL"
+cDD_bray$compfrac[cDD_bray$season1=="Fa"&cDD_bray$season2=="Su"&cDD_bray$fraction1=="E"&cDD_bray$fraction2=="E"]<-"Su-Fa_PA"
+cDD_bray$compfrac[cDD_bray$season1=="Fa"&cDD_bray$season2=="Su"&cDD_bray$fraction1=="B"&cDD_bray$fraction2=="E"]<-"Su-Fa_FL-PA"
+cDD_bray$compfrac[cDD_bray$season1=="Fa"&cDD_bray$season2=="Su"&cDD_bray$fraction1=="E"&cDD_bray$fraction2=="B"]<-"Su-Fa_FL-PA"
+
+cDD_bray$compdepth[cDD_bray$season1=="Fa"&cDD_bray$season2=="Su"&cDD_bray$depth1=="S"&cDD_bray$depth2=="S"]<-"Su-Fa_Surf"
+cDD_bray$compdepth[cDD_bray$season1=="Fa"&cDD_bray$season2=="Su"&cDD_bray$depth1=="D"&cDD_bray$depth2=="D"]<-"Su-Fa_Deep"
+cDD_bray$compdepth[cDD_bray$season1=="Fa"&cDD_bray$season2=="Su"&cDD_bray$depth1=="S"&cDD_bray$depth2=="D"]<-"Su-Fa_Surf-Deep"
+cDD_bray$compdepth[cDD_bray$season1=="Fa"&cDD_bray$season2=="Su"&cDD_bray$depth1=="D"&cDD_bray$depth2=="S"]<-"Su-Fa_Surf-Deep"
+
+#removing self comparisons and calculating average per group, also remove all comparisons between seasons
+cDD_bray <- subset(cDD_bray, samp1 != samp2)
+cDD_bray <- subset(cDD_bray, season1 == season2)
+cDD_bray_frac <- subset(cDD_bray, station1 == station2 & depth1 == depth2 & fraction1 != fraction2)
+cDD_bray_stat <- subset(cDD_bray, fraction1 == fraction2 & depth1 == depth2)
+cDD_bray_depth <- subset(cDD_bray, station1 == station2 & fraction1 == fraction2)
+
+compstat_mean <- ddply(cDD_bray_stat, ~compstat, function(x){data.frame(compstat_mean = mean(x$value))})
+compfrac_mean <- ddply(cDD_bray_frac, ~compfrac, function(x){data.frame(compfrac_mean = mean(x$value))})
+compdepth_mean <- ddply(cDD_bray_depth, ~compdepth, function(x){data.frame(compdepth_mean = mean(x$value))})
+
+cDD_bray_frac_KW <- kruskal.test(cDD_bray_frac$value ~ as.factor(cDD_bray_frac$compfrac)) 
+print(cDD_bray_frac_KW)  # show Kruskal Wallis result
+### Which samples are significantly different from each other?  
+cDD_bray_frac_KW_MC <- kruskalmc(cDD_bray_frac$value ~ as.factor(cDD_bray_frac$compfrac))  ## Defaults to P < 0.05
+#print(bray_prod_KW_MC)
+
+########## continue fromn here!!!
+### Test to find the letters to represent significance in a plot
+bray_test <- bray_prod_KW_MC$dif.com$difference # select logical vector
+names(bray_test) <- row.names(bray_prod_KW_MC$dif.com) # add comparison names
+# create a list with "homogenous groups" coded by letter
+bray_letters <- multcompLetters(bray_test, compare="<", threshold=0.05, 
+                                Letters=c(letters, LETTERS, "."), reversed = FALSE)
+###  Extract the values from the multcompLetters object
+bray_sigs_dataframe <-  data.frame(as.vector(names(bray_letters$Letters)), as.vector(bray_letters$Letters))
+colnames(bray_sigs_dataframe) <- c("troph_lim1", "siglabel")
+bray_try <- merge(prod_beta, bray_sigs_dataframe, by = "troph_lim1")
 
 
+bray_try$troph_lim1 <-factor(bray_try$troph_lim1,
+                             levels=c( "Productive Epilimnion Free", "Productive Epilimnion Particle", "Productive Hypolimnion Free","Productive Hypolimnion Particle","Unproductive Epilimnion Free", "Unproductive Epilimnion Particle", "Unproductive Hypolimnion Free", "Unproductive Hypolimnion Particle"))
 
 
-########## cDNA:DNA clustering ##########
-#One option is to identify genes that drive the PCoA spread, then plot over seasons, stations, fractions
-cDD_TAX=tax_table(merged_final_toptaxa)
-cDD_SAM=sample_data(subset_samples(subset_samples(merged_final,DNA == "cD"),names != "Su.EcD.110.DN"))
-cDD_OTU=otu_table(mf_cD2D_log,taxa_are_rows=TRUE)
-cDD_physeq = phyloseq(cDD_OTU,cDD_TAX,cDD_SAM)
-#cDD_physeq = prune_taxa(taxa_sums(merged_final_toptaxa) > 1000, cDD_physeq)
+bray_sigs <- bray_try %>%
+  select(trophicstate1, troph_lim1, siglabel) %>%
+  distinct()
 
-cDD.scale <- 
-  heat_wrapper(
-    physeq = cDD_physeq, 
-    taxrank = "Phylum",
-    dist.method = "spearman",
-    k = 8
-  )
+bray_boxplot <- ggplot(bray_try, aes(x = troph_lim1, y = value, fill = troph_lim1)) + geom_point(size = 2) +
+  geom_boxplot() +
+  geom_text(data = bray_sigs, aes(label = siglabel, x = troph_lim1, y = 0.92), size =3) +
+  scale_fill_manual(name = "", limits=c("Productive Epilimnion Particle", "Productive Epilimnion Free", 
+                                        "Productive Hypolimnion Particle", "Productive Hypolimnion Free",
+                                         "Unproductive Epilimnion Particle", "Unproductive Epilimnion Free", 
+                                        "Unproductive Hypolimnion Particle", "Unproductive Hypolimnion Free"), 
+                     values = c("royalblue4", "royalblue4", "royalblue4", "royalblue4",
+                                "cornflowerblue","cornflowerblue","cornflowerblue","cornflowerblue"))+
+  scale_x_discrete(breaks=c("Productive Epilimnion Free", "Productive Epilimnion Particle", 
+                            "Productive Hypolimnion Free","Productive Hypolimnion Particle",
+                            "Unproductive Epilimnion Free", "Unproductive Epilimnion Particle",
+                            "Unproductive Hypolimnion Free", "Unproductive Hypolimnion Particle"),
+                   labels=c("Epilimnion \nFree-Living (12)", "Epilimnion \nParticle-Associated (12)", 
+                            "Hypolimnion \nFree-Living (8)", "Hypolimnion \nParticle-Associated (8)",
+                            "Epilimnion \nFree-Living (12)", "Epilimnion \nParticle-Associated (6)", 
+                            "Hypolimnion \nFree-Living (12)", "Hypolimnion \nParticle-Associated (12)")) + 
+  xlab("Habitat") + ylab("Bray-Curtis \nDissimilarity") + theme_bw() + #scale_fill_brewer(palette="Paired") + 
+  facet_grid(. ~ trophicstate1, scale = "free", space = "free") +
+  theme(plot.title = element_text(face="bold", size = 12),  #Set the plot title
+                                 strip.text.x = element_blank(),  #Set the facet titles on x-axis 
+                                 strip.text.y = element_blank(),  #Set the facet titles on x-axis 
+                                 strip.background = element_blank(),  #Set the facet background to no background
+                                 axis.title.x = element_text(face="bold", size=10),  #Set the x-axis title
+                                 axis.title.y = element_text(face="bold", size=10),  #Set the y-axis title
+                                 axis.text.x = element_text(angle=30, colour = "black", 
+                                                            vjust=1, hjust = 1, size=8),  #Set the x-axis labels
+                                 axis.text.y = element_text(colour = "black", size=8),  #Set the y-axis labels
+                                 legend.title = element_text(size = 8, face="bold"),  #Set the legend title 
+                                 legend.text = element_text(size = 8),  #Set the legend text
+                                 legend.position="none", #Default the legend position to the right
+                                 plot.margin = unit(c(0.1, 0.1, 0.1, 0.1), "cm"));  #top, right, bottom, left
 
-# Pick colors for group labels. n should match k above
-otulabs.colors <- brewer.pal(n = 8, name = "Dark2")
+####pull out most different, highly active OTUs
+#make dataframes with ratio data, exclude MLB (very different communities), make subsets for Sp and Fa
+mf_cD2D_Sp <- data.frame(otu_table(subset_samples(subset_samples(cDD_physeq, Station != "MLB"),Season == "Sp")))
+mf_cD2D_SpPA <- data.frame(otu_table(subset_samples(subset_samples(subset_samples(cDD_physeq, Station != "MLB"),Season == "Sp"),Fraction == "E")))
+mf_cD2D_SpFL <- data.frame(otu_table(subset_samples(subset_samples(subset_samples(cDD_physeq, Station != "MLB"),Season == "Sp"),Fraction == "B")))
+  
+mf_cD2D_Fa<-data.frame(otu_table(subset_samples(subset_samples(cDD_physeq, Station != "MLB"),Season == "Fa")))
+mf_cD2D_FaPA <- data.frame(otu_table(subset_samples(subset_samples(subset_samples(cDD_physeq, Station != "MLB"),Season == "Fa"),Fraction == "E")))
+mf_cD2D_FaFL <- data.frame(otu_table(subset_samples(subset_samples(subset_samples(cDD_physeq, Station != "MLB"),Season == "Fa"),Fraction == "B")))
 
-# Make heatmap
-ggplot(cDD.scale$data, aes(x = Group_cDvsD, y = OTU) ) +
-  geom_tile(aes(fill = value)) +
-  scale_fill_gradient(low = "#000033", high = "#FF3300") +
-  theme(
-    axis.text.x = element_text(
-      angle = 45, 
-      vjust = 1, 
-      hjust = 1, 
-      size = 9, 
-      face = "bold"
-    ),     
-    axis.title.y = element_text(size = 14),
-    plot.title = element_text(size = 16, face = "bold"),
-    axis.text.y = element_text(
-      color =  otulabs.colors[cDD.scale$clusters]
-    )
-  )
+mf_cD2D_Su<-data.frame(otu_table(subset_samples(subset_samples(subset_samples(cDD_physeq, Station != "MLB"),Season == "Su"),names != "Su.BcD.110.DN")))
+mf_cD2D_SuPA <- data.frame(otu_table(subset_samples(subset_samples(subset_samples(subset_samples(cDD_physeq, Station != "MLB"),Season == "Su"),Fraction == "E"),names != "Su.BcD.110.DN")))
+mf_cD2D_SuFL <- data.frame(otu_table(subset_samples(subset_samples(subset_samples(subset_samples(cDD_physeq, Station != "MLB"),Season == "Su"),Fraction == "B"),names != "Su.BcD.110.DN")))
 
-########## cDNA:DNA ratio FL and PA Sp vs FL Su and Fa (without MLB?) DEseq or other stats ##########
+#do stats to determine those OTUs with similar ratio between Sp PA and FL but diff between Su and Fa PA vs FL
 
-#first separate otu_tables DNA and cDNA data, omit sample with no DNA match
-mf_cD<-data.frame(otu_table(subset_samples(subset_samples(merged_final,DNA == "cD"),names != "Su.EcD.110.DN")))
-mf_cD$OTU=rownames(mf_cD)
-mf_D<-data.frame(otu_table(subset_samples(merged_final,DNA == "D")))
-mf_D$OTU=rownames(mf_D)
-#combine into 1 dataframe, then divide cDNA by DNA data (adding 1 to each element to avoid zeroes)
-both = merge(mf_cD,mf_D)
-mf_cD2D = (both[, 2:48]+1) / (both[, 49:95]+1)
-rownames(mf_cD2D) = rownames(mf_D)
-
-cDD_TAX=tax_table(merged_final)
-cDD_SAM=sample_data(subset_samples(subset_samples(merged_final,DNA == "cD"),names != "Su.EcD.110.DN"))
-cDD_OTU=otu_table(mf_cD2D,taxa_are_rows=TRUE)
-cDD_physeq = phyloseq(cDD_OTU,cDD_TAX,cDD_SAM)
-
-phylum.colors<-group.colors
-
-# deseq without pruning low abundance - otu level - per fraction - PA - no scaling (done by DEseq2!)
-cDD_PA_noMLB_noFall <- subset_samples(subset_samples(subset_samples(cDD_physeq, Station != "MLB"), Season != "Su"), Fraction != "B")
-View(tax_table(cDD_PA_noMLB_noFall))
-deseq_otu_cDD_PA_noMLB_noFall_raw <- deSEQ_noprune(cDD_PA_noMLB_noFall, ~ Season)
-deseq_otu_cDD_PA_noMLB_noFall_raw$plotvalue <- log(as.numeric(deseq_otu_cDD_PA_noMLB_noFall_raw$baseMean),2)
-deseq_otu_cDD_PA_noMLB_noFall_raw$sig <- as.factor((deseq_otu_cDD_PA_noMLB_noFall_raw$padj<0.05)*1)
-deseq_otu_cDD_PA_noMLB_noFall_plot <- plot_deSEQ(deseq_otu_cDD_PA_noMLB_noFall_raw, "OTU cDNA:DNA PA samples")
-#pdf(file="/Users/vdenef/Documents/UMich/Papers/2015_Fujimoto_activity_Frontiers/Rplot_cDvsD_PA_noscale.pdf", width= 20, height=15, pointsize= 14, useDingbats=FALSE)
-deseq_otu_cDD_PA_noMLB_noFall_plot
-#dev.off()
-
+#Also extract OTUs that are most variable in ratio cD:D over space and time -- for this create dataframe populated by cD:D data, calculate average and stdev, also add minimum and average cD data and min and avg D data
+# start with all data
+colnames(mf_cD2D) <- paste("cD2D", colnames(mf_cD2D), sep = "_")
+co.var <- function(x) ( 100*sd(x)/mean(x) )
+cD2D_stats <- transform(mf_cD2D, RAT_MEAN = apply(X = mf_cD2D,1, mean, na.rm = TRUE), RAT_SD=apply(X = mf_cD2D,1, sd, na.rm = TRUE), RAT_CV=apply(X = mf_cD2D,1,co.var), RAT_MAX=apply(X = mf_cD2D,1, max, na.rm = TRUE))
+mf_cD_t <- mf_cD[,-48]
+mf_D_t <- mf_D[,-48]
+cD_stats <- select(transform(mf_cD_t, cD_MEAN = apply(X = mf_cD_t,1, mean, na.rm = TRUE), cD_COUNT = rowSums(mf_cD_t > 0)),cD_MEAN, cD_COUNT)
+D_stats <- select(transform(mf_D_t, D_MEAN = apply(X = mf_D_t,1, mean, na.rm = TRUE), D_COUNT = rowSums(mf_D_t > 0)),D_MEAN, D_COUNT)
+cD2D_stats$OTU <- rownames(cD2D_stats)
+D_stats$OTU <- rownames(D_stats)
+cD_stats$OTU <- rownames(cD_stats)
+count_ratio_summary <- merge(cD2D_stats,cD_stats,by="OTU")
+count_ratio_summary$OTU = rownames(cD2D_stats)
+count_ratio_summary <- merge(count_ratio_summary,D_stats,by="OTU")
+count_ratio_summary$OTU = rownames(cD2D_stats)
+cDD_TAX_t <- as.data.frame(cDD_TAX)
+cDD_TAX_t$OTU <- rownames(cDD_TAX)
+count_ratio_summary <- merge(count_ratio_summary,cDD_TAX_t,by="OTU")
+count_ratio_summary$OTU = rownames(cD2D_stats)
+View(arrange(filter(count_ratio_summary, cD_COUNT > 30),-RAT_CV))
+## would be god to work toward a figure with boxplots for cDNA, DNA, and cD2D data for each OTU, ordered by decreasing CV only including OTUs detected in x% of samples
 
 ########## cDNA vs DNA DEseq ##########
 
@@ -1071,8 +1191,7 @@ deseq_otu_DNAcDNA_plot_FL_raw <- plot_deSEQ(deseq_otu_DNAcDNA_FL_raw, "OTU cDNA:
 #pdf(file="/Users/vdenef/Documents/UMich/Papers/2015_Fujimoto_activity_Frontiers/Rplot_cDvsD_FL_noscale.pdf", width= 20, height=15, pointsize= 14, useDingbats=FALSE)
 deseq_otu_DNAcDNA_plot_FL_raw
 #dev.off()
-View(deseq_otu_DNAcDNA_FL_raw)
-View(deseq_otu_DNAcDNA_PA_raw)
+
 #plot together
 Phylum_temp <- as.character(deseq_otu_DNAcDNA_PA_raw$Phylum)
 for  (i in 1:length(Phylum_temp)){ 
@@ -1089,6 +1208,103 @@ deseq_otu_DNAcDNA_FL_raw$Phylum_plot <- Phylum_temp
 deseq_otu_DNAcDNA_FLandPA_raw<-rbind(deseq_otu_DNAcDNA_FL_raw,deseq_otu_DNAcDNA_PA_raw)
 deseq_otu_DNAcDNA_plot_FLandPA_raw <- plot_deSEQ_combo(deseq_otu_DNAcDNA_FLandPA_raw, "OTU cDNA:DNA FL and PA samples")
 deseq_otu_DNAcDNA_plot_FLandPA_raw
+
+# deseq without pruning low abundance - otu level - compare groups based on cD:D PCoA - no scaling (done by DEseq2!)
+# we will remove MLB then make two groups (1) Spring FL and PA, Su and Fa FL (2) Su and Fa PA
+raw_merged_noMLB_Sp <- subset_samples(subset_samples(raw_merged, Station != "MLB"), Season == "Sp")
+raw_merged_noMLB_SpPA <- subset_samples(raw_merged_noMLB_Sp, Fraction != "B")
+raw_merged_noMLB_SpFL <- subset_samples(raw_merged_noMLB_Sp, Fraction != "E")
+sample_data(raw_merged)$names = rownames(sample_data(raw_merged))
+raw_merged_noMLB_SuFaPA <- subset_samples(subset_samples(subset_samples(raw_merged, Fraction != "B"), Season != "Sp"), names != "Su.EcD.110.DN")
+raw_merged_noMLB_SuFaFL <- subset_samples(subset_samples(raw_merged, Fraction != "E"), Season != "Sp")
+raw_merged_noMLB_SuFaPA_SpPAFL <- merge_phyloseq(raw_merged_noMLB_Sp,raw_merged_noMLB_SuFaPA)
+
+
+
+# deseq without pruning low abundance - otu level - compare groups based on cD:D PCoA - no scaling (done by DEseq2!)
+# we will remove MLB then make two groups (1) Spring FL and PA, Su and Fa FL (2) Su and Fa PA
+raw_merged_noMLB_Sp <- subset_samples(subset_samples(raw_merged, Station != "MLB"), Season == "Sp")
+raw_merged_noMLB_SpPA <- subset_samples(raw_merged_noMLB_Sp, Fraction != "B")
+raw_merged_noMLB_SpFL <- subset_samples(raw_merged_noMLB_Sp, Fraction != "E")
+sample_data(raw_merged)$names = rownames(sample_data(raw_merged))
+raw_merged_noMLB_SuFaPA <- subset_samples(subset_samples(subset_samples(raw_merged, Fraction != "B"), Season != "Sp"), names != "Su.EcD.110.DN")
+raw_merged_noMLB_SuFaFL <- subset_samples(subset_samples(raw_merged, Fraction != "E"), Season != "Sp")
+raw_merged_noMLB_SuFaPA_SpPAFL <- merge_phyloseq(raw_merged_noMLB_Sp,raw_merged_noMLB_SuFaPA)
+
+#now run DEseq2 Sp samples
+deseq_otu_DNAcDNA_noMLB_Sp <- deSEQ_noprune(raw_merged_noMLB_Sp, ~ DNA)
+deseq_otu_DNAcDNA_noMLB_Sp$plotvalue <- log(as.numeric(deseq_otu_DNAcDNA_noMLB_Sp$baseMean),2)
+deseq_otu_DNAcDNA_noMLB_Sp$sig <- as.factor((deseq_otu_DNAcDNA_noMLB_Sp$padj<0.05)*1)
+deseq_otu_DNAcDNA_noMLB_Sp_plot <- plot_deSEQ(deseq_otu_DNAcDNA_noMLB_Sp, "OTU cDNA:DNA Sp PA/FL samples no MLB")
+#pdf(file="/Users/vdenef/Documents/UMich/Papers/2015_Fujimoto_activity_Frontiers/Rplot_cDvsD_FL_noscale.pdf", width= 20, height=15, pointsize= 14, useDingbats=FALSE)
+deseq_otu_DNAcDNA_noMLB_Sp_plot
+#dev.off()
+
+#now run DEseq2 Sp PA samples
+deseq_otu_DNAcDNA_noMLB_SpPA <- deSEQ_noprune(raw_merged_noMLB_SpPA, ~ DNA)
+deseq_otu_DNAcDNA_noMLB_SpPA$plotvalue <- log(as.numeric(deseq_otu_DNAcDNA_noMLB_SpPA$baseMean),2)
+deseq_otu_DNAcDNA_noMLB_SpPA$sig <- as.factor((deseq_otu_DNAcDNA_noMLB_SpPA$padj<0.05)*1)
+deseq_otu_DNAcDNA_noMLB_SpPA_plot <- plot_deSEQ(deseq_otu_DNAcDNA_noMLB_SpPA, "OTU cDNA:DNA Sp PA samples no MLB")
+#pdf(file="/Users/vdenef/Documents/UMich/Papers/2015_Fujimoto_activity_Frontiers/Rplot_cDvsD_FL_noscale.pdf", width= 20, height=15, pointsize= 14, useDingbats=FALSE)
+deseq_otu_DNAcDNA_noMLB_SpPA_plot
+#dev.off()
+
+#now run DEseq2 Sp FL samples
+deseq_otu_DNAcDNA_noMLB_SpFL <- deSEQ_noprune(raw_merged_noMLB_SpFL, ~ DNA)
+deseq_otu_DNAcDNA_noMLB_SpFL$plotvalue <- log(as.numeric(deseq_otu_DNAcDNA_noMLB_SpFL$baseMean),2)
+deseq_otu_DNAcDNA_noMLB_SpFL$sig <- as.factor((deseq_otu_DNAcDNA_noMLB_SpFL$padj<0.05)*1)
+deseq_otu_DNAcDNA_noMLB_SpFL_plot <- plot_deSEQ(deseq_otu_DNAcDNA_noMLB_SpFL, "OTU cDNA:DNA Sp PA samples no MLB")
+#pdf(file="/Users/vdenef/Documents/UMich/Papers/2015_Fujimoto_activity_Frontiers/Rplot_cDvsD_FL_noscale.pdf", width= 20, height=15, pointsize= 14, useDingbats=FALSE)
+deseq_otu_DNAcDNA_noMLB_SpFL_plot
+#dev.off()
+
+#now run DEseq2 Su Fa PA samples
+deseq_otu_DNAcDNA_noMLB_SuFaPA <- deSEQ_noprune(raw_merged_noMLB_SuFaPA, ~ DNA)
+deseq_otu_DNAcDNA_noMLB_SuFaPA$plotvalue <- log(as.numeric(deseq_otu_DNAcDNA_noMLB_SuFaPA$baseMean),2)
+deseq_otu_DNAcDNA_noMLB_SuFaPA$sig <- as.factor((deseq_otu_DNAcDNA_noMLB_SuFaPA$padj<0.05)*1)
+deseq_otu_DNAcDNA_noMLB_SuFaPA_plot <- plot_deSEQ(deseq_otu_DNAcDNA_noMLB_SuFaPA, "OTU cDNA:DNA Su/Fa PA samples no MLB")
+#pdf(file="/Users/vdenef/Documents/UMich/Papers/2015_Fujimoto_activity_Frontiers/Rplot_cDvsD_FL_noscale.pdf", width= 20, height=15, pointsize= 14, useDingbats=FALSE)
+deseq_otu_DNAcDNA_noMLB_SuFaPA_plot
+#dev.off()
+
+#now run DEseq2 Su Fa FL samples
+deseq_otu_DNAcDNA_noMLB_SuFaFL <- deSEQ_noprune(raw_merged_noMLB_SuFaFL, ~ DNA)
+deseq_otu_DNAcDNA_noMLB_SuFaFL$plotvalue <- log(as.numeric(deseq_otu_DNAcDNA_noMLB_SuFaFL$baseMean),2)
+deseq_otu_DNAcDNA_noMLB_SuFaFL$sig <- as.factor((deseq_otu_DNAcDNA_noMLB_SuFaFL$padj<0.05)*1)
+deseq_otu_DNAcDNA_noMLB_SuFaFL_plot <- plot_deSEQ(deseq_otu_DNAcDNA_noMLB_SuFaFL, "OTU cDNA:DNA Su/Fa FL samples no MLB")
+#pdf(file="/Users/vdenef/Documents/UMich/Papers/2015_Fujimoto_activity_Frontiers/Rplot_cDvsD_FL_noscale.pdf", width= 20, height=15, pointsize= 14, useDingbats=FALSE)
+deseq_otu_DNAcDNA_noMLB_SuFaFL_plot
+#dev.off()
+
+#plot together
+Phylum_temp <- as.character(deseq_otu_DNAcDNA_noMLB_SpPA$Phylum)
+for  (i in 1:length(Phylum_temp)){ 
+  Phylum_temp[i] = paste(Phylum_temp[i],"Sp PA",sep=" ")
+} 
+deseq_otu_DNAcDNA_noMLB_SpPA$Phylum_plot <- Phylum_temp
+
+Phylum_temp <- as.character(deseq_otu_DNAcDNA_noMLB_SpFL$Phylum)
+for  (i in 1:length(Phylum_temp)){ 
+  Phylum_temp[i] = paste(Phylum_temp[i],"Sp FL",sep=" ")
+} 
+deseq_otu_DNAcDNA_noMLB_SpFL$Phylum_plot <- Phylum_temp
+
+Phylum_temp <- as.character(deseq_otu_DNAcDNA_noMLB_SuFaPA$Phylum)
+for  (i in 1:length(Phylum_temp)){ 
+  Phylum_temp[i] = paste(Phylum_temp[i],"SuFa PA",sep=" ")
+} 
+deseq_otu_DNAcDNA_noMLB_SuFaPA$Phylum_plot <- Phylum_temp
+
+Phylum_temp <- as.character(deseq_otu_DNAcDNA_noMLB_SuFaFL$Phylum)
+for  (i in 1:length(Phylum_temp)){ 
+  Phylum_temp[i] = paste(Phylum_temp[i],"SuFa FL",sep=" ")
+} 
+deseq_otu_DNAcDNA_noMLB_SuFaFL$Phylum_plot <- Phylum_temp
+
+deseq_otu_DNAcDNA_SpvsSuFa<-rbind(deseq_otu_DNAcDNA_noMLB_SpFL,deseq_otu_DNAcDNA_noMLB_SpPA,deseq_otu_DNAcDNA_noMLB_SuFaFL,deseq_otu_DNAcDNA_noMLB_SuFaPA)
+deseq_otu_DNAcDNA_SpvsSuFa_plot <- plot_deSEQ_combo(deseq_otu_DNAcDNA_SpvsSuFa, "OTU cDNA:DNA Sp vs SuFa")
+deseq_otu_DNAcDNA_SpvsSuFa_plot
+
 
 ########## cDNA vs DNA overlap of OTUs ########## 
 #TO DO: ADD FILTER TO ONLY INCLUDE SAMPLES WITH 2 REPS
