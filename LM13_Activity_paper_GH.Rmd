@@ -7,7 +7,7 @@ output: html_document
 
 ## Phyloseq analysis of iTags 
 
-```{r}
+```{r setting environment}
 ######################################################################################################
 ###########################  SETTING ENVIRONMENT  ##########################################
 ######################################################################################################
@@ -55,7 +55,9 @@ set_ggtheme <- theme_set(theme_bw() +
 
 #set taxonomy plotting colors
 group.colors <- c(Acidobacteria = "grey26", Actinobacteria = "royalblue", Alphaproteobacteria = "plum2", Armatimonadetes = "red", Bacteroidetes = "darkorange", "BD1-5" = "chartreuse", Betaproteobacteria = "slateblue2", Caldiserica = "black","Candidate_division_BRC1" = "violetred4", "Candidate_division_JS1" = "aquamarine1", "Candidate_division_OD1" = "#6DDE88", "Candidate_division_OP3" = "hotpink", "Candidate_division_OP8" = "goldenrod1", "Candidate_division_OP11" = "chocolate4", "Candidate_division_SR1" = "tan3", "Candidate_division_TM7" = "skyblue1", "Candidate_division_WS3" = "magenta", Chlamydiae="violet", Chlorobi="cyan2", Chloroflexi="darkgreen", Cyanobacteria = "chartreuse3", Deferribacteres = "slateblue3", "Deinococcus-Thermus" = "violetred", Dictyoglomi = "cornsilk4", Deltaproteobacteria = "deepskyblue", Elusimicrobia = "yellow3", Epsilonproteobacteria = "lightskyblue", Fibrobacteres = "darkred", Firmicutes = "blue4", FGL7S = "palevioletred1", Fusobacteria = "slateblue1", Gammaproteobacteria = "steelblue4", Gemmatimonadetes="black", GOUTA4 = "plum1", "Hyd24-12" = "sienna2", JTB23 = "seashell2", Nitrospirae = "yellow1", "NPL-UPA2"="#652926", OC31 = "mediumpurple4", Planctomycetes = "mediumorchid3", Proteobacteria = "chocolate1", "SHA-109" = "lightsalmon3", SM2F11 = "lightskyblue2", SPOTSOCT00m83 = "orangered", Spirochaetae = "gold3", Tenericutes="pink", Thermotogae = "chocolate1", TA06 = "lightslateblue",TA18 = "rosybrown3", TM6 = "olivedrab", unclassified = "grey", Verrucomicrobia = "purple4", "WCHB1-60" = "palegreen", Other = "darkgrey")
+```
 
+```{r data import and normalization}
 ######################################################################################################
 ###########################  DATA IMPORT AND NORMALIZATION  ##########################################
 ######################################################################################################
@@ -216,11 +218,11 @@ merged_final <- merge_phyloseq(sc_tax, sc_otu, data_final)
 
 ## If want to limit to top taxa, then uncomment the following lines > 0.05% on average
 merged_final_toptaxa <- prune_taxa(taxa_sums(merged_final) > 215, merged_final)
-merged_final<-merged_final_toptaxa
+#merged_final<-merged_final_toptaxa
 physeq_toptaxa = prune_taxa(taxa_names(merged_final_toptaxa),physeq)
-physeq<-physeq_toptaxa
+#physeq<-physeq_toptaxa
 raw_merged_toptaxa = prune_taxa(taxa_names(merged_final_toptaxa),raw_merged)
-raw_merged<-raw_merged_toptaxa
+#raw_merged<-raw_merged_toptaxa
 
 ########## ADD THE PROTEOBACTERIA TO THE PHYLA
 phy <- data.frame(tax_table(merged_final))
@@ -263,7 +265,9 @@ phy$Phylum <- Phylum
 t <- tax_table(as.matrix(phy))
 
 tax_table(raw_merged) <- t
+```
 
+```{r alpha diversity}
 
 ######################################################################################################
 ##################################  ALPHA-DIVERSITY ###################################################
@@ -434,45 +438,22 @@ plot_richobs_sigs <- ggplot(richobs_try, aes(x = stat_seas_frac, y = Meanstat_se
         strip.background = element_blank(),
         legend.position="none"); plot_richobs_sigs
 
+```
+
+```{r beta-diversity DNA and cDNA count data: upgma + PCoA + ADONIS}
 ######################################################################################################
 ##################################  BETA-DIVERSITY ###################################################
 ######################################################################################################
-#NMDS bray-curtis
-set.seed(3)
-x <- t(otu_table(merged_final))
-nmds_bray <- metaMDS(x, distance="bray")  #, autotransform = FALSE
-nmds_bray_df <- data.frame(nmds_bray$points) #http://strata.uga.edu/software/pdf/mdsTutorial.pdf
-nmds_bray_df$names<-row.names(nmds_bray_df) #new names column
-data_final_df$names<-row.names(data_final_df)
-nmds_bray_meta <- merge(nmds_bray_df,data_final_df,by="names")
 
-nmds_BC <- ggplot(nmds_bray_meta, aes(MDS1*10, MDS2*10, color = Season, shape = Station, size = Fraction, fill = DNA)) +
-  xlab("axis 1") + ylab("axis 2") + #ggtitle("Bray-Curtis") +
-  geom_point(alpha=0.9) + theme_bw() + #ylim(1, -1) + xlim(1, -1) +
-  annotate("text", label = " Stress = 0.18", x = (max(nmds_bray_df$MDS1*10) -3.5), y = (max(nmds_bray_df$MDS2*10) -0.02), size = 4, colour = "black")  +
-  scale_color_manual(name = "season", breaks=c("Sp", "Su",  "Fa"),
-                     labels = c("Spring", "Summer",  "Fall"), 
-                     values = c("mediumblue", "darkgreen", "red")) +
-  scale_shape_manual(name = "station", breaks = c("MLB", "MM15",  "MM110"), 
-                     labels = c("MLB", "M15",  "M110"),
-                     values = c(21, 22, 24)) +
-  scale_size_manual(name = "fraction", breaks = c("E", "B"), 
-                     labels = c("Particle", "Free"),
-                     values = c(3, 5)) +
-  scale_fill_manual(name = "Nucleic acid", breaks = c("cD", "D"), 
-                     labels = c("cDNA", "DNA"),
-                     values = c("white", "grey")) +
-  theme(axis.text.x = element_text(colour="black", vjust=0.5, size=14), 
-        axis.text.y = element_text(colour="black", vjust=0.5, size=14),
-        axis.title.x = element_text(face="bold", size=16),
-        axis.title.y = element_text(face="bold", size=16),
-        legend.title = element_text(size=12, face="bold"),
-        legend.text = element_text(size = 12),
-        ###LEGEND TOP RIGHT CORNER
-        legend.position = "right"); nmds_BC
+# upgma clustering
+norm_bray <- vegdist(t(otu_table(merged_final))), method = "bray")  # calculates the Bray-Curtis Distances
+upgma <- hclust(d = norm_bray,method = "average")
+pdf(file="/Users/vdenef/Documents/UMich/Papers/2015_Fujimoto_activity_Frontiers/Rplot_upgma_bray.pdf", width= 20, height=15, pointsize= 14)
+upgma_bray <- plot(upgma, hang = -1) ; upgma_bray
+  dev.off()
 
 # Betadiv pcoa Bray-Curtis
-norm_bray <- vegdist(t(sc_otu), method = "bray")  # calculates the Bray-Curtis Distances
+norm_bray <- vegdist(t(otu_table(merged_final))), method = "bray")  # calculates the Bray-Curtis Distances
 bray_pcoa <- pcoa(norm_bray)
 bray_pcoa2 <- bray_pcoa$vectors
 bray_pcoa3 <- data.frame(bray_pcoa2[, 1:4])
@@ -646,7 +627,9 @@ phyloseq_to_adonis(merged_final, distmat = norm_soren, dist = "bray","DayNight")
 phyloseq_to_adonis(merged_final, distmat = norm_soren, dist = "bray","Lake")
 formula<-c("Season","Lake","Station","Fraction","Depth_C","DNA","DayNight")
 phyloseq_to_adonis(merged_final, distmat = norm_soren, dist = "bray",formula)
+```
 
+```{r barplots}
 ###barplots
 phylum_relab<-taxglom_and_melt(merged_final,"Phylum",0.01)
 #View(data.frame(phylum_relab))
@@ -753,7 +736,9 @@ ab_plot <- ggplot(StatSeasFracDNA_phylum_stats, aes(y=mean_abundance , x=Phylum,
         strip.background = element_rect(fill="grey77", color = NA),
         legend.position="right"); ab_plot
 dev.off()
+```
 
+```{r cDNA:DNA ratio data PCoA and ADONIS}
 ######################################################################################################
 ##################################  cDNA vs DNA ######################################################
 ######################################################################################################
@@ -773,34 +758,34 @@ rownames(mf_cD2D_log) = rownames(mf_D)
 
 cDD_PCoA_title <- paste("PCoA cDNA:DNA ratios when considering",ntaxa(merged_final),"OTUs")
   
-# Betadiv pcoa Bray-Curtis
-cDD_norm_bray <- vegdist(t(mf_cD2D), method = "bray")  # calculates the Bray-Curtis Distances
-cDD_bray_pcoa <- pcoa(cDD_norm_bray)
-cDD_bray_pcoa2 <- cDD_bray_pcoa$vectors
-cDD_bray_pcoa3 <- data.frame(cDD_bray_pcoa2[, 1:4])
-cDD_bray_pcoa3$names <- row.names(cDD_bray_pcoa3)
-cDD_bray_pcoa4 <- merge(cDD_bray_pcoa3,data_final_df,by="names")
-for(i in 1:length(cDD_bray_pcoa4$Season)){
-  cDD_bray_pcoa4$Depth_Seas[i]<-paste(as.character(cDD_bray_pcoa4$Depth_C[i]),
-                                  as.character(cDD_bray_pcoa4$Season[i]))}
-cDD_bray_values <- cDD_bray_pcoa$values
-cDD_bray_rel_eigens <- cDD_bray_values$Relative_eig
-cDD_bray_rel_eigen1 <- cDD_bray_rel_eigens[1]
-cDD_bray_rel_eigen1_percent <- round(cDD_bray_rel_eigen1 * 100, digits = 1)
-cDD_bray_rel_eigen2 <- cDD_bray_rel_eigens[2]
-cDD_bray_rel_eigen2_percent <- round(cDD_bray_rel_eigen2 * 100, digits = 1)
-cDD_bray_rel_eigen3 <- cDD_bray_rel_eigens[3]
-cDD_bray_rel_eigen3_percent <- round(cDD_bray_rel_eigen3 * 100, digits = 1)
-cDD_bray_rel_eigen4 <- cDD_bray_rel_eigens[4]
-cDD_bray_rel_eigen4_percent <- round(cDD_bray_rel_eigen4 * 100, digits = 1)
-cDD_bray_axis1 <- paste("PCoA1:",cDD_bray_rel_eigen1_percent,"%")
-cDD_bray_axis2 <- paste("PCoA2:",cDD_bray_rel_eigen2_percent,"%")
-cDD_bray_axis3 <- paste("PCoA3:",cDD_bray_rel_eigen3_percent,"%")
-cDD_bray_axis4 <- paste("PCoA4:",cDD_bray_rel_eigen4_percent,"%")
+# Betadiv pcoa Euclidean distance on log transformed ratio data
+cDD_norm_euc <- vegdist(t(mf_cD2D_log), method = "euclidean")  # calculates the Bray-Curtis Distances
+cDD_euc_pcoa <- pcoa(cDD_norm_euc)
+cDD_euc_pcoa2 <- cDD_euc_pcoa$vectors
+cDD_euc_pcoa3 <- data.frame(cDD_euc_pcoa2[, 1:4])
+cDD_euc_pcoa3$names <- row.names(cDD_euc_pcoa3)
+cDD_euc_pcoa4 <- merge(cDD_euc_pcoa3,data_final_df,by="names")
+for(i in 1:length(cDD_euc_pcoa4$Season)){
+  cDD_euc_pcoa4$Depth_Seas[i]<-paste(as.character(cDD_euc_pcoa4$Depth_C[i]),
+                                  as.character(cDD_euc_pcoa4$Season[i]))}
+cDD_euc_values <- cDD_euc_pcoa$values
+cDD_euc_rel_eigens <- cDD_euc_values$Relative_eig
+cDD_euc_rel_eigen1 <- cDD_euc_rel_eigens[1]
+cDD_euc_rel_eigen1_percent <- round(cDD_euc_rel_eigen1 * 100, digits = 1)
+cDD_euc_rel_eigen2 <- cDD_euc_rel_eigens[2]
+cDD_euc_rel_eigen2_percent <- round(cDD_euc_rel_eigen2 * 100, digits = 1)
+cDD_euc_rel_eigen3 <- cDD_euc_rel_eigens[3]
+cDD_euc_rel_eigen3_percent <- round(cDD_euc_rel_eigen3 * 100, digits = 1)
+cDD_euc_rel_eigen4 <- cDD_euc_rel_eigens[4]
+cDD_euc_rel_eigen4_percent <- round(cDD_euc_rel_eigen4 * 100, digits = 1)
+cDD_euc_axis1 <- paste("PCoA1:",cDD_euc_rel_eigen1_percent,"%")
+cDD_euc_axis2 <- paste("PCoA2:",cDD_euc_rel_eigen2_percent,"%")
+cDD_euc_axis3 <- paste("PCoA3:",cDD_euc_rel_eigen3_percent,"%")
+cDD_euc_axis4 <- paste("PCoA4:",cDD_euc_rel_eigen4_percent,"%")
 
-pdf(file="/Users/vdenef/Documents/UMich/Papers/2015_Fujimoto_activity_Frontiers/Rplot_cDD_PCOA12_BC.pdf", width= 20, height=15, pointsize= 14)
-cDD_pcoa_BC12 <- ggplot(cDD_bray_pcoa4, aes(Axis.1, Axis.2 * -1, color = Season, shape = Station, size = Fraction, fill = Depth_Seas)) +
-  xlab(cDD_bray_axis1) + ylab(cDD_bray_axis2) + ggtitle(cDD_PCoA_title) +
+#pdf(file="/Users/vdenef/Documents/UMich/Papers/2015_Fujimoto_activity_Frontiers/Rplot_cDD_PCOA12_EUC.pdf", width= 20, height=15, pointsize= 14)
+cDD_pcoa_EUC12 <- ggplot(cDD_euc_pcoa4, aes(Axis.1, Axis.2 * -1, color = Season, shape = Station, size = Fraction, fill = Depth_Seas)) +
+  xlab(cDD_euc_axis1) + ylab(cDD_euc_axis2) + ggtitle(cDD_PCoA_title) +
   geom_point(alpha=0.9)  + theme_bw() + #ylim(1, -1) + xlim(1, -1) +
   scale_color_manual(name = "season", breaks=c("Sp", "Su",  "Fa"),
                      labels = c("Spring", "Summer",  "Fall"), 
@@ -821,12 +806,12 @@ cDD_pcoa_BC12 <- ggplot(cDD_bray_pcoa4, aes(Axis.1, Axis.2 * -1, color = Season,
         legend.title = element_text(size=12, face="bold"),
         legend.text = element_text(size = 12),
         ###LEGEND TOP RIGHT CORNER
-        legend.position = "right"); cDD_pcoa_BC12
-  dev.off()
+        legend.position = "right"); cDD_pcoa_EUC12
+#  dev.off()
 
-pdf(file="/Users/vdenef/Documents/UMich/Papers/2015_Fujimoto_activity_Frontiers/Rplot_cDD_PCOA34_BC.pdf", width= 20, height=15, pointsize= 14)
-cDD_pcoa_BC34 <- ggplot(cDD_bray_pcoa4, aes(Axis.3, Axis.4 * -1, color = Season, shape = Station, size = Fraction, fill = Depth_Seas)) +
-  xlab(cDD_bray_axis3) + ylab(cDD_bray_axis4) + ggtitle(cDD_PCoA_title) +
+#pdf(file="/Users/vdenef/Documents/UMich/Papers/2015_Fujimoto_activity_Frontiers/Rplot_cDD_PCOA34_EUC.pdf", width= 20, height=15, pointsize= 14)
+cDD_pcoa_EUC34 <- ggplot(cDD_euc_pcoa4, aes(Axis.3, Axis.4 * -1, color = Season, shape = Station, size = Fraction, fill = Depth_Seas)) +
+  xlab(cDD_euc_axis3) + ylab(cDD_euc_axis4) + ggtitle(cDD_PCoA_title) +
   geom_point(alpha=0.9) + theme_bw() + #ylim(1, -1) + xlim(1, -1) +
   scale_color_manual(name = "season", breaks=c("Sp", "Su",  "Fa"),
                      labels = c("Spring", "Summer",  "Fall"), 
@@ -847,288 +832,473 @@ cDD_pcoa_BC34 <- ggplot(cDD_bray_pcoa4, aes(Axis.3, Axis.4 * -1, color = Season,
         legend.title = element_text(size=12, face="bold"),
         legend.text = element_text(size = 12),
         ###LEGEND TOP RIGHT CORNER
-        legend.position = "right"); cDD_pcoa_BC34
-  dev.off()
+        legend.position = "right"); cDD_pcoa_EUC34
+#  dev.off()
 
 #Let's run ADONIS using Michelle's function
 cDD_TAX=tax_table(merged_final)
 cDD_SAM=sample_data(subset_samples(subset_samples(merged_final,DNA == "cD"),names != "Su.EcD.110.DN"))
-cDD_OTU=otu_table(mf_cD2D,taxa_are_rows=TRUE)
+cDD_OTU=otu_table(mf_cD2D_log,taxa_are_rows=TRUE)
 cDD_physeq = phyloseq(cDD_OTU,cDD_TAX,cDD_SAM)
-phyloseq_to_adonis(cDD_physeq, distmat = cDD_norm_bray, dist = "bray","Fraction")
-phyloseq_to_adonis(cDD_physeq, distmat = cDD_norm_bray, dist = "bray","Season")
-phyloseq_to_adonis(cDD_physeq, distmat = cDD_norm_bray, dist = "bray","Station")
-phyloseq_to_adonis(cDD_physeq, distmat = cDD_norm_bray, dist = "bray","Depth_C")
-phyloseq_to_adonis(cDD_physeq, distmat = cDD_norm_bray, dist = "bray","DayNight")
-phyloseq_to_adonis(cDD_physeq, distmat = cDD_norm_bray, dist = "bray","Lake")
+phyloseq_to_adonis(cDD_physeq, distmat = cDD_norm_euc, dist = "euclidean","Fraction")
+phyloseq_to_adonis(cDD_physeq, distmat = cDD_norm_euc, dist = "euclidean","Season")
+phyloseq_to_adonis(cDD_physeq, distmat = cDD_norm_euc, dist = "euclidean","Station")
+phyloseq_to_adonis(cDD_physeq, distmat = cDD_norm_euc, dist = "euclidean","Depth_C")
+phyloseq_to_adonis(cDD_physeq, distmat = cDD_norm_euc, dist = "euclidean","DayNight")
+phyloseq_to_adonis(cDD_physeq, distmat = cDD_norm_euc, dist = "euclidean","Lake")
 formula<-c("Season","Fraction","Lake","Station","Depth_C","DayNight")
-phyloseq_to_adonis(cDD_physeq, distmat = cDD_norm_bray, dist = "bray",formula)
+phyloseq_to_adonis(cDD_physeq, distmat = cDD_norm_euc, dist = "euclidean",formula)
 
+```
+
+```{r boxplots euclidean distances across seasons}
 ####determine whether ratios in different habitats becomes increasingly different over seasonal succession
-#creat dataframe with paired bray-curtis dissimilarity and add metadat for compared samples
-cDD_norm_bray <- vegdist(t(mf_cD2D), method = "bray")  # calculates the Bray-Curtis Distances
-cDD_bray <- melt(as.matrix(cDD_norm_bray), varnames = c("samp1", "samp2"))
-cDD_bray$season1 <- substr(cDD_bray$samp1,1,2) # Create a new column called season1 with first 2 letters of string
-cDD_bray$season2 <- substr(cDD_bray$samp2,1,2) # Create a new column called season2 with first 2 letters of string
-cDD_bray$fraction1 <- substr(cDD_bray$samp1,4,4) # Create a new column called fraction1 with letter 4 of string
-cDD_bray$fraction2 <- substr(cDD_bray$samp2,4,4) # Create a new column called fraction2 with letter 4 of string
-cDD_bray$station1 <- unlist(strsplit(toString(cDD_bray$samp1), "[., ]"))[seq(3,length(unlist(strsplit(toString(cDD_bray$samp1), split="[., ]"))),5)] # Create a new column called station1 with staton name
-cDD_bray$station2 <- unlist(strsplit(toString(cDD_bray$samp2), "[., ]"))[seq(3,length(unlist(strsplit(toString(cDD_bray$samp2), split="[., ]"))),5)] # Create a new column called station2 with staton name
-cDD_bray$depth1 <- substr(unlist(strsplit(toString(cDD_bray$samp1), "[., ]"))[seq(4,length(unlist(strsplit(toString(cDD_bray$samp1), split="[., ]"))),5)],1,1) # Create a new column called depth1 with depth
-cDD_bray$depth2 <- substr(unlist(strsplit(toString(cDD_bray$samp2), "[., ]"))[seq(4,length(unlist(strsplit(toString(cDD_bray$samp2), split="[., ]"))),5)],1,1) # Create a new column called depth2 with depth
+#create dataframe with paired Euclidean dissimilarity and add metadata for compared samples
+cDD_norm_euc <- vegdist(t(mf_cD2D_log), method = "euc")  # calculates the Euclidean Distances
+cDD_euc <- melt(as.matrix(cDD_norm_euc), varnames = c("samp1", "samp2"))
+cDD_euc$season1 <- substr(cDD_euc$samp1,1,2) # Create a new column called season1 with first 2 letters of string
+cDD_euc$season2 <- substr(cDD_euc$samp2,1,2) # Create a new column called season2 with first 2 letters of string
+cDD_euc$fraction1 <- substr(cDD_euc$samp1,4,4) # Create a new column called fraction1 with letter 4 of string
+cDD_euc$fraction2 <- substr(cDD_euc$samp2,4,4) # Create a new column called fraction2 with letter 4 of string
+cDD_euc$station1 <- unlist(strsplit(toString(cDD_euc$samp1), "[., ]"))[seq(3,length(unlist(strsplit(toString(cDD_euc$samp1), split="[., ]"))),5)] # Create a new column called station1 with staton name
+cDD_euc$station2 <- unlist(strsplit(toString(cDD_euc$samp2), "[., ]"))[seq(3,length(unlist(strsplit(toString(cDD_euc$samp2), split="[., ]"))),5)] # Create a new column called station2 with staton name
+cDD_euc$depth1 <- substr(unlist(strsplit(toString(cDD_euc$samp1), "[., ]"))[seq(4,length(unlist(strsplit(toString(cDD_euc$samp1), split="[., ]"))),5)],1,1) # Create a new column called depth1 with depth
+cDD_euc$depth2 <- substr(unlist(strsplit(toString(cDD_euc$samp2), "[., ]"))[seq(4,length(unlist(strsplit(toString(cDD_euc$samp2), split="[., ]"))),5)],1,1) # Create a new column called depth2 with depth
 
 #combine category names to group similar comparisons
-cDD_bray$compstat[cDD_bray$season1=="Sp"&cDD_bray$season2=="Sp"&cDD_bray$station1=="MLB"&cDD_bray$station2=="MLB"]<-"Sp_MLB"
-cDD_bray$compstat[cDD_bray$season1=="Sp"&cDD_bray$season2=="Sp"&cDD_bray$station1=="15"&cDD_bray$station2=="15"]<-"Sp_15"
-cDD_bray$compstat[cDD_bray$season1=="Sp"&cDD_bray$season2=="Sp"&cDD_bray$station1=="110"&cDD_bray$station2=="110"]<-"Sp_110"
-cDD_bray$compstat[cDD_bray$season1=="Sp"&cDD_bray$season2=="Sp"&cDD_bray$station1=="MLB"&cDD_bray$station2=="15"]<-"Sp_MLB-15"
-cDD_bray$compstat[cDD_bray$season1=="Sp"&cDD_bray$season2=="Sp"&cDD_bray$station1=="MLB"&cDD_bray$station2=="110"]<-"Sp_MLB-110"
-cDD_bray$compstat[cDD_bray$season1=="Sp"&cDD_bray$season2=="Sp"&cDD_bray$station1=="15"&cDD_bray$station2=="110"]<-"Sp_15-110"
-cDD_bray$compstat[cDD_bray$season1=="Sp"&cDD_bray$season2=="Sp"&cDD_bray$station1=="15"&cDD_bray$station2=="MLB"]<-"Sp_MLB-15"
-cDD_bray$compstat[cDD_bray$season1=="Sp"&cDD_bray$season2=="Sp"&cDD_bray$station1=="110"&cDD_bray$station2=="MLB"]<-"Sp_MLB-110"
-cDD_bray$compstat[cDD_bray$season1=="Sp"&cDD_bray$season2=="Sp"&cDD_bray$station1=="110"&cDD_bray$station2=="15"]<-"Sp_15-110"
+cDD_euc$complake[cDD_euc$season1=="Sp"&cDD_euc$season2=="Sp"&cDD_euc$station1=="MLB"&cDD_euc$station2=="MLB"]<-"Sp_ML"
+cDD_euc$complake[cDD_euc$season1=="Sp"&cDD_euc$season2=="Sp"&cDD_euc$station1=="15"&cDD_euc$station2=="15"]<-"Sp_LM"
+cDD_euc$complake[cDD_euc$season1=="Sp"&cDD_euc$season2=="Sp"&cDD_euc$station1=="110"&cDD_euc$station2=="110"]<-"Sp_LM"
+cDD_euc$complake[cDD_euc$season1=="Sp"&cDD_euc$season2=="Sp"&cDD_euc$station1=="MLB"&cDD_euc$station2=="15"]<-"Sp_MLBvsLM"
+cDD_euc$complake[cDD_euc$season1=="Sp"&cDD_euc$season2=="Sp"&cDD_euc$station1=="MLB"&cDD_euc$station2=="110"]<-"Sp_MLBvsLM"
+cDD_euc$complake[cDD_euc$season1=="Sp"&cDD_euc$season2=="Sp"&cDD_euc$station1=="15"&cDD_euc$station2=="110"]<-"Sp_LM"
+cDD_euc$complake[cDD_euc$season1=="Sp"&cDD_euc$season2=="Sp"&cDD_euc$station1=="15"&cDD_euc$station2=="MLB"]<-"Sp_MLBvsLM"
+cDD_euc$complake[cDD_euc$season1=="Sp"&cDD_euc$season2=="Sp"&cDD_euc$station1=="110"&cDD_euc$station2=="MLB"]<-"Sp_MLBvsLM"
+cDD_euc$complake[cDD_euc$season1=="Sp"&cDD_euc$season2=="Sp"&cDD_euc$station1=="110"&cDD_euc$station2=="15"]<-"Sp_LM"
 
-cDD_bray$compfrac[cDD_bray$season1=="Sp"&cDD_bray$season2=="Sp"&cDD_bray$fraction1=="B"&cDD_bray$fraction2=="B"]<-"Sp_FL"
-cDD_bray$compfrac[cDD_bray$season1=="Sp"&cDD_bray$season2=="Sp"&cDD_bray$fraction1=="E"&cDD_bray$fraction2=="E"]<-"Sp_PA"
-cDD_bray$compfrac[cDD_bray$season1=="Sp"&cDD_bray$season2=="Sp"&cDD_bray$fraction1=="B"&cDD_bray$fraction2=="E"]<-"Sp_FL-PA"
-cDD_bray$compfrac[cDD_bray$season1=="Sp"&cDD_bray$season2=="Sp"&cDD_bray$fraction1=="E"&cDD_bray$fraction2=="B"]<-"Sp_FL-PA"
+cDD_euc$compstat[cDD_euc$season1=="Sp"&cDD_euc$season2=="Sp"&cDD_euc$station1=="MLB"&cDD_euc$station2=="MLB"]<-"Sp_MLB"
+cDD_euc$compstat[cDD_euc$season1=="Sp"&cDD_euc$season2=="Sp"&cDD_euc$station1=="15"&cDD_euc$station2=="15"]<-"Sp_15"
+cDD_euc$compstat[cDD_euc$season1=="Sp"&cDD_euc$season2=="Sp"&cDD_euc$station1=="110"&cDD_euc$station2=="110"]<-"Sp_110"
+cDD_euc$compstat[cDD_euc$season1=="Sp"&cDD_euc$season2=="Sp"&cDD_euc$station1=="MLB"&cDD_euc$station2=="15"]<-"Sp_MLBvs15"
+cDD_euc$compstat[cDD_euc$season1=="Sp"&cDD_euc$season2=="Sp"&cDD_euc$station1=="MLB"&cDD_euc$station2=="110"]<-"Sp_MLBvs110"
+cDD_euc$compstat[cDD_euc$season1=="Sp"&cDD_euc$season2=="Sp"&cDD_euc$station1=="15"&cDD_euc$station2=="110"]<-"Sp_15vs110"
+cDD_euc$compstat[cDD_euc$season1=="Sp"&cDD_euc$season2=="Sp"&cDD_euc$station1=="15"&cDD_euc$station2=="MLB"]<-"Sp_MLBvs15"
+cDD_euc$compstat[cDD_euc$season1=="Sp"&cDD_euc$season2=="Sp"&cDD_euc$station1=="110"&cDD_euc$station2=="MLB"]<-"Sp_MLBvs110"
+cDD_euc$compstat[cDD_euc$season1=="Sp"&cDD_euc$season2=="Sp"&cDD_euc$station1=="110"&cDD_euc$station2=="15"]<-"Sp_15vs110"
 
-cDD_bray$compdepth[cDD_bray$season1=="Sp"&cDD_bray$season2=="Sp"&cDD_bray$depth1=="S"&cDD_bray$depth2=="S"]<-"Sp_Surf"
-cDD_bray$compdepth[cDD_bray$season1=="Sp"&cDD_bray$season2=="Sp"&cDD_bray$depth1=="D"&cDD_bray$depth2=="D"]<-"Sp_Deep"
-cDD_bray$compdepth[cDD_bray$season1=="Sp"&cDD_bray$season2=="Sp"&cDD_bray$depth1=="S"&cDD_bray$depth2=="D"]<-"Sp_Surf-Deep"
-cDD_bray$compdepth[cDD_bray$season1=="Sp"&cDD_bray$season2=="Sp"&cDD_bray$depth1=="D"&cDD_bray$depth2=="S"]<-"Sp_Surf-Deep"
+cDD_euc$compfrac[cDD_euc$season1=="Sp"&cDD_euc$season2=="Sp"&cDD_euc$fraction1=="B"&cDD_euc$fraction2=="B"]<-"Sp_FL"
+cDD_euc$compfrac[cDD_euc$season1=="Sp"&cDD_euc$season2=="Sp"&cDD_euc$fraction1=="E"&cDD_euc$fraction2=="E"]<-"Sp_PA"
+cDD_euc$compfrac[cDD_euc$season1=="Sp"&cDD_euc$season2=="Sp"&cDD_euc$fraction1=="B"&cDD_euc$fraction2=="E"]<-"Sp_FLvsPA"
+cDD_euc$compfrac[cDD_euc$season1=="Sp"&cDD_euc$season2=="Sp"&cDD_euc$fraction1=="E"&cDD_euc$fraction2=="B"]<-"Sp_FLvsPA"
 
-cDD_bray$compstat[cDD_bray$season1=="Su"&cDD_bray$season2=="Su"&cDD_bray$station1=="MLB"&cDD_bray$station2=="MLB"]<-"Su_MLB"
-cDD_bray$compstat[cDD_bray$season1=="Su"&cDD_bray$season2=="Su"&cDD_bray$station1=="15"&cDD_bray$station2=="15"]<-"Su_15"
-cDD_bray$compstat[cDD_bray$season1=="Su"&cDD_bray$season2=="Su"&cDD_bray$station1=="110"&cDD_bray$station2=="110"]<-"Su_110"
-cDD_bray$compstat[cDD_bray$season1=="Su"&cDD_bray$season2=="Su"&cDD_bray$station1=="MLB"&cDD_bray$station2=="15"]<-"Su_MLB-15"
-cDD_bray$compstat[cDD_bray$season1=="Su"&cDD_bray$season2=="Su"&cDD_bray$station1=="MLB"&cDD_bray$station2=="110"]<-"Su_MLB-110"
-cDD_bray$compstat[cDD_bray$season1=="Su"&cDD_bray$season2=="Su"&cDD_bray$station1=="15"&cDD_bray$station2=="110"]<-"Su_15-110"
-cDD_bray$compstat[cDD_bray$season1=="Su"&cDD_bray$season2=="Su"&cDD_bray$station1=="15"&cDD_bray$station2=="MLB"]<-"Su_MLB-15"
-cDD_bray$compstat[cDD_bray$season1=="Su"&cDD_bray$season2=="Su"&cDD_bray$station1=="110"&cDD_bray$station2=="MLB"]<-"Su_MLB-110"
-cDD_bray$compstat[cDD_bray$season1=="Su"&cDD_bray$season2=="Su"&cDD_bray$station1=="110"&cDD_bray$station2=="15"]<-"Su_15-110"
+cDD_euc$compdepth[cDD_euc$season1=="Sp"&cDD_euc$season2=="Sp"&cDD_euc$depth1=="S"&cDD_euc$depth2=="S"]<-"Sp_Surf"
+cDD_euc$compdepth[cDD_euc$season1=="Sp"&cDD_euc$season2=="Sp"&cDD_euc$depth1=="D"&cDD_euc$depth2=="D"]<-"Sp_Deep"
+cDD_euc$compdepth[cDD_euc$season1=="Sp"&cDD_euc$season2=="Sp"&cDD_euc$depth1=="S"&cDD_euc$depth2=="D"]<-"Sp_SurfvsDeep"
+cDD_euc$compdepth[cDD_euc$season1=="Sp"&cDD_euc$season2=="Sp"&cDD_euc$depth1=="D"&cDD_euc$depth2=="S"]<-"Sp_SurfvsDeep"
 
-cDD_bray$compfrac[cDD_bray$season1=="Su"&cDD_bray$season2=="Su"&cDD_bray$fraction1=="B"&cDD_bray$fraction2=="B"]<-"Su_FL"
-cDD_bray$compfrac[cDD_bray$season1=="Su"&cDD_bray$season2=="Su"&cDD_bray$fraction1=="E"&cDD_bray$fraction2=="E"]<-"Su_PA"
-cDD_bray$compfrac[cDD_bray$season1=="Su"&cDD_bray$season2=="Su"&cDD_bray$fraction1=="B"&cDD_bray$fraction2=="E"]<-"Su_FL-PA"
-cDD_bray$compfrac[cDD_bray$season1=="Su"&cDD_bray$season2=="Su"&cDD_bray$fraction1=="E"&cDD_bray$fraction2=="B"]<-"Su_FL-PA"
+cDD_euc$complake[cDD_euc$season1=="Su"&cDD_euc$season2=="Su"&cDD_euc$station1=="MLB"&cDD_euc$station2=="MLB"]<-"Su_ML"
+cDD_euc$complake[cDD_euc$season1=="Su"&cDD_euc$season2=="Su"&cDD_euc$station1=="15"&cDD_euc$station2=="15"]<-"Su_LM"
+cDD_euc$complake[cDD_euc$season1=="Su"&cDD_euc$season2=="Su"&cDD_euc$station1=="110"&cDD_euc$station2=="110"]<-"Su_LM"
+cDD_euc$complake[cDD_euc$season1=="Su"&cDD_euc$season2=="Su"&cDD_euc$station1=="MLB"&cDD_euc$station2=="15"]<-"Su_MLBvsLM"
+cDD_euc$complake[cDD_euc$season1=="Su"&cDD_euc$season2=="Su"&cDD_euc$station1=="MLB"&cDD_euc$station2=="110"]<-"Su_MLBvsLM"
+cDD_euc$complake[cDD_euc$season1=="Su"&cDD_euc$season2=="Su"&cDD_euc$station1=="15"&cDD_euc$station2=="110"]<-"Su_LM"
+cDD_euc$complake[cDD_euc$season1=="Su"&cDD_euc$season2=="Su"&cDD_euc$station1=="15"&cDD_euc$station2=="MLB"]<-"Su_MLBvsLM"
+cDD_euc$complake[cDD_euc$season1=="Su"&cDD_euc$season2=="Su"&cDD_euc$station1=="110"&cDD_euc$station2=="MLB"]<-"Su_MLBvsLM"
+cDD_euc$complake[cDD_euc$season1=="Su"&cDD_euc$season2=="Su"&cDD_euc$station1=="110"&cDD_euc$station2=="15"]<-"Su_LM"
 
-cDD_bray$compdepth[cDD_bray$season1=="Su"&cDD_bray$season2=="Su"&cDD_bray$depth1=="S"&cDD_bray$depth2=="S"]<-"Su_Surf"
-cDD_bray$compdepth[cDD_bray$season1=="Su"&cDD_bray$season2=="Su"&cDD_bray$depth1=="D"&cDD_bray$depth2=="D"]<-"Su_Deep"
-cDD_bray$compdepth[cDD_bray$season1=="Su"&cDD_bray$season2=="Su"&cDD_bray$depth1=="S"&cDD_bray$depth2=="D"]<-"Su_Surf-Deep"
-cDD_bray$compdepth[cDD_bray$season1=="Su"&cDD_bray$season2=="Su"&cDD_bray$depth1=="D"&cDD_bray$depth2=="S"]<-"Su_Surf-Deep"
+cDD_euc$compstat[cDD_euc$season1=="Su"&cDD_euc$season2=="Su"&cDD_euc$station1=="MLB"&cDD_euc$station2=="MLB"]<-"Su_MLB"
+cDD_euc$compstat[cDD_euc$season1=="Su"&cDD_euc$season2=="Su"&cDD_euc$station1=="15"&cDD_euc$station2=="15"]<-"Su_15"
+cDD_euc$compstat[cDD_euc$season1=="Su"&cDD_euc$season2=="Su"&cDD_euc$station1=="110"&cDD_euc$station2=="110"]<-"Su_110"
+cDD_euc$compstat[cDD_euc$season1=="Su"&cDD_euc$season2=="Su"&cDD_euc$station1=="MLB"&cDD_euc$station2=="15"]<-"Su_MLBvs15"
+cDD_euc$compstat[cDD_euc$season1=="Su"&cDD_euc$season2=="Su"&cDD_euc$station1=="MLB"&cDD_euc$station2=="110"]<-"Su_MLBvs110"
+cDD_euc$compstat[cDD_euc$season1=="Su"&cDD_euc$season2=="Su"&cDD_euc$station1=="15"&cDD_euc$station2=="110"]<-"Su_15vs110"
+cDD_euc$compstat[cDD_euc$season1=="Su"&cDD_euc$season2=="Su"&cDD_euc$station1=="15"&cDD_euc$station2=="MLB"]<-"Su_MLBvs15"
+cDD_euc$compstat[cDD_euc$season1=="Su"&cDD_euc$season2=="Su"&cDD_euc$station1=="110"&cDD_euc$station2=="MLB"]<-"Su_MLBvs110"
+cDD_euc$compstat[cDD_euc$season1=="Su"&cDD_euc$season2=="Su"&cDD_euc$station1=="110"&cDD_euc$station2=="15"]<-"Su_15vs110"
 
-cDD_bray$compstat[cDD_bray$season1=="Fa"&cDD_bray$season2=="Fa"&cDD_bray$station1=="MLB"&cDD_bray$station2=="MLB"]<-"Fa_MLB"
-cDD_bray$compstat[cDD_bray$season1=="Fa"&cDD_bray$season2=="Fa"&cDD_bray$station1=="15"&cDD_bray$station2=="15"]<-"Fa_15"
-cDD_bray$compstat[cDD_bray$season1=="Fa"&cDD_bray$season2=="Fa"&cDD_bray$station1=="110"&cDD_bray$station2=="110"]<-"Fa_110"
-cDD_bray$compstat[cDD_bray$season1=="Fa"&cDD_bray$season2=="Fa"&cDD_bray$station1=="MLB"&cDD_bray$station2=="15"]<-"Fa_MLB-15"
-cDD_bray$compstat[cDD_bray$season1=="Fa"&cDD_bray$season2=="Fa"&cDD_bray$station1=="MLB"&cDD_bray$station2=="110"]<-"Fa_MLB-110"
-cDD_bray$compstat[cDD_bray$season1=="Fa"&cDD_bray$season2=="Fa"&cDD_bray$station1=="15"&cDD_bray$station2=="110"]<-"Fa_15-110"
-cDD_bray$compstat[cDD_bray$season1=="Fa"&cDD_bray$season2=="Fa"&cDD_bray$station1=="15"&cDD_bray$station2=="MLB"]<-"Fa_MLB-15"
-cDD_bray$compstat[cDD_bray$season1=="Fa"&cDD_bray$season2=="Fa"&cDD_bray$station1=="110"&cDD_bray$station2=="MLB"]<-"Fa_MLB-110"
-cDD_bray$compstat[cDD_bray$season1=="Fa"&cDD_bray$season2=="Fa"&cDD_bray$station1=="110"&cDD_bray$station2=="15"]<-"Fa_15-110"
+cDD_euc$compfrac[cDD_euc$season1=="Su"&cDD_euc$season2=="Su"&cDD_euc$fraction1=="B"&cDD_euc$fraction2=="B"]<-"Su_FL"
+cDD_euc$compfrac[cDD_euc$season1=="Su"&cDD_euc$season2=="Su"&cDD_euc$fraction1=="E"&cDD_euc$fraction2=="E"]<-"Su_PA"
+cDD_euc$compfrac[cDD_euc$season1=="Su"&cDD_euc$season2=="Su"&cDD_euc$fraction1=="B"&cDD_euc$fraction2=="E"]<-"Su_FLvsPA"
+cDD_euc$compfrac[cDD_euc$season1=="Su"&cDD_euc$season2=="Su"&cDD_euc$fraction1=="E"&cDD_euc$fraction2=="B"]<-"Su_FLvsPA"
 
-cDD_bray$compfrac[cDD_bray$season1=="Fa"&cDD_bray$season2=="Fa"&cDD_bray$fraction1=="B"&cDD_bray$fraction2=="B"]<-"Fa_FL"
-cDD_bray$compfrac[cDD_bray$season1=="Fa"&cDD_bray$season2=="Fa"&cDD_bray$fraction1=="E"&cDD_bray$fraction2=="E"]<-"Fa_PA"
-cDD_bray$compfrac[cDD_bray$season1=="Fa"&cDD_bray$season2=="Fa"&cDD_bray$fraction1=="B"&cDD_bray$fraction2=="E"]<-"Fa_FL-PA"
-cDD_bray$compfrac[cDD_bray$season1=="Fa"&cDD_bray$season2=="Fa"&cDD_bray$fraction1=="E"&cDD_bray$fraction2=="B"]<-"Fa_FL-PA"
+cDD_euc$compdepth[cDD_euc$season1=="Su"&cDD_euc$season2=="Su"&cDD_euc$depth1=="S"&cDD_euc$depth2=="S"]<-"Su_Surf"
+cDD_euc$compdepth[cDD_euc$season1=="Su"&cDD_euc$season2=="Su"&cDD_euc$depth1=="D"&cDD_euc$depth2=="D"]<-"Su_Deep"
+cDD_euc$compdepth[cDD_euc$season1=="Su"&cDD_euc$season2=="Su"&cDD_euc$depth1=="S"&cDD_euc$depth2=="D"]<-"Su_SurfvsDeep"
+cDD_euc$compdepth[cDD_euc$season1=="Su"&cDD_euc$season2=="Su"&cDD_euc$depth1=="D"&cDD_euc$depth2=="S"]<-"Su_SurfvsDeep"
 
-cDD_bray$compdepth[cDD_bray$season1=="Fa"&cDD_bray$season2=="Fa"&cDD_bray$depth1=="S"&cDD_bray$depth2=="S"]<-"Fa_Surf"
-cDD_bray$compdepth[cDD_bray$season1=="Fa"&cDD_bray$season2=="Fa"&cDD_bray$depth1=="D"&cDD_bray$depth2=="D"]<-"Fa_Deep"
-cDD_bray$compdepth[cDD_bray$season1=="Fa"&cDD_bray$season2=="Fa"&cDD_bray$depth1=="S"&cDD_bray$depth2=="D"]<-"Fa_Surf-Deep"
-cDD_bray$compdepth[cDD_bray$season1=="Fa"&cDD_bray$season2=="Fa"&cDD_bray$depth1=="D"&cDD_bray$depth2=="S"]<-"Fa_Surf-Deep"
+cDD_euc$complake[cDD_euc$season1=="Fa"&cDD_euc$season2=="Fa"&cDD_euc$station1=="MLB"&cDD_euc$station2=="MLB"]<-"Fa_ML"
+cDD_euc$complake[cDD_euc$season1=="Fa"&cDD_euc$season2=="Fa"&cDD_euc$station1=="15"&cDD_euc$station2=="15"]<-"Fa_LM"
+cDD_euc$complake[cDD_euc$season1=="Fa"&cDD_euc$season2=="Fa"&cDD_euc$station1=="110"&cDD_euc$station2=="110"]<-"Fa_LM"
+cDD_euc$complake[cDD_euc$season1=="Fa"&cDD_euc$season2=="Fa"&cDD_euc$station1=="MLB"&cDD_euc$station2=="15"]<-"Fa_MLBvsLM"
+cDD_euc$complake[cDD_euc$season1=="Fa"&cDD_euc$season2=="Fa"&cDD_euc$station1=="MLB"&cDD_euc$station2=="110"]<-"Fa_MLBvsLM"
+cDD_euc$complake[cDD_euc$season1=="Fa"&cDD_euc$season2=="Fa"&cDD_euc$station1=="15"&cDD_euc$station2=="110"]<-"Fa_LM"
+cDD_euc$complake[cDD_euc$season1=="Fa"&cDD_euc$season2=="Fa"&cDD_euc$station1=="15"&cDD_euc$station2=="MLB"]<-"Fa_MLBvsLM"
+cDD_euc$complake[cDD_euc$season1=="Fa"&cDD_euc$season2=="Fa"&cDD_euc$station1=="110"&cDD_euc$station2=="MLB"]<-"Fa_MLBvsLM"
+cDD_euc$complake[cDD_euc$season1=="Fa"&cDD_euc$season2=="Fa"&cDD_euc$station1=="110"&cDD_euc$station2=="15"]<-"Fa_LM"
 
-cDD_bray$compstat[cDD_bray$season1=="Sp"&cDD_bray$season2=="Su"&cDD_bray$station1=="MLB"&cDD_bray$station2=="MLB"]<-"Sp-Su_MLB"
-cDD_bray$compstat[cDD_bray$season1=="Sp"&cDD_bray$season2=="Su"&cDD_bray$station1=="15"&cDD_bray$station2=="15"]<-"Sp-Su_15"
-cDD_bray$compstat[cDD_bray$season1=="Sp"&cDD_bray$season2=="Su"&cDD_bray$station1=="110"&cDD_bray$station2=="110"]<-"Sp-Su_110"
-cDD_bray$compstat[cDD_bray$season1=="Sp"&cDD_bray$season2=="Su"&cDD_bray$station1=="MLB"&cDD_bray$station2=="15"]<-"Sp-Su_MLB-15"
-cDD_bray$compstat[cDD_bray$season1=="Sp"&cDD_bray$season2=="Su"&cDD_bray$station1=="MLB"&cDD_bray$station2=="110"]<-"Sp-Su_MLB-110"
-cDD_bray$compstat[cDD_bray$season1=="Sp"&cDD_bray$season2=="Su"&cDD_bray$station1=="15"&cDD_bray$station2=="110"]<-"Sp-Su_15-110"
-cDD_bray$compstat[cDD_bray$season1=="Sp"&cDD_bray$season2=="Su"&cDD_bray$station1=="15"&cDD_bray$station2=="MLB"]<-"Sp-Su_MLB-15"
-cDD_bray$compstat[cDD_bray$season1=="Sp"&cDD_bray$season2=="Su"&cDD_bray$station1=="110"&cDD_bray$station2=="MLB"]<-"Sp-Su_MLB-110"
-cDD_bray$compstat[cDD_bray$season1=="Sp"&cDD_bray$season2=="Su"&cDD_bray$station1=="110"&cDD_bray$station2=="15"]<-"Sp-Su_15-110"
+cDD_euc$compstat[cDD_euc$season1=="Fa"&cDD_euc$season2=="Fa"&cDD_euc$station1=="MLB"&cDD_euc$station2=="MLB"]<-"Fa_MLB"
+cDD_euc$compstat[cDD_euc$season1=="Fa"&cDD_euc$season2=="Fa"&cDD_euc$station1=="15"&cDD_euc$station2=="15"]<-"Fa_15"
+cDD_euc$compstat[cDD_euc$season1=="Fa"&cDD_euc$season2=="Fa"&cDD_euc$station1=="110"&cDD_euc$station2=="110"]<-"Fa_110"
+cDD_euc$compstat[cDD_euc$season1=="Fa"&cDD_euc$season2=="Fa"&cDD_euc$station1=="MLB"&cDD_euc$station2=="15"]<-"Fa_MLBvs15"
+cDD_euc$compstat[cDD_euc$season1=="Fa"&cDD_euc$season2=="Fa"&cDD_euc$station1=="MLB"&cDD_euc$station2=="110"]<-"Fa_MLBvs110"
+cDD_euc$compstat[cDD_euc$season1=="Fa"&cDD_euc$season2=="Fa"&cDD_euc$station1=="15"&cDD_euc$station2=="110"]<-"Fa_15vs110"
+cDD_euc$compstat[cDD_euc$season1=="Fa"&cDD_euc$season2=="Fa"&cDD_euc$station1=="15"&cDD_euc$station2=="MLB"]<-"Fa_MLBvs15"
+cDD_euc$compstat[cDD_euc$season1=="Fa"&cDD_euc$season2=="Fa"&cDD_euc$station1=="110"&cDD_euc$station2=="MLB"]<-"Fa_MLBvs110"
+cDD_euc$compstat[cDD_euc$season1=="Fa"&cDD_euc$season2=="Fa"&cDD_euc$station1=="110"&cDD_euc$station2=="15"]<-"Fa_15vs110"
 
-cDD_bray$compfrac[cDD_bray$season1=="Sp"&cDD_bray$season2=="Su"&cDD_bray$fraction1=="B"&cDD_bray$fraction2=="B"]<-"Sp-Su_FL"
-cDD_bray$compfrac[cDD_bray$season1=="Sp"&cDD_bray$season2=="Su"&cDD_bray$fraction1=="E"&cDD_bray$fraction2=="E"]<-"Sp-Su_PA"
-cDD_bray$compfrac[cDD_bray$season1=="Sp"&cDD_bray$season2=="Su"&cDD_bray$fraction1=="B"&cDD_bray$fraction2=="E"]<-"Sp-Su_FL-PA"
-cDD_bray$compfrac[cDD_bray$season1=="Sp"&cDD_bray$season2=="Su"&cDD_bray$fraction1=="E"&cDD_bray$fraction2=="B"]<-"Sp-Su_FL-PA"
+cDD_euc$compfrac[cDD_euc$season1=="Fa"&cDD_euc$season2=="Fa"&cDD_euc$fraction1=="B"&cDD_euc$fraction2=="B"]<-"Fa_FL"
+cDD_euc$compfrac[cDD_euc$season1=="Fa"&cDD_euc$season2=="Fa"&cDD_euc$fraction1=="E"&cDD_euc$fraction2=="E"]<-"Fa_PA"
+cDD_euc$compfrac[cDD_euc$season1=="Fa"&cDD_euc$season2=="Fa"&cDD_euc$fraction1=="B"&cDD_euc$fraction2=="E"]<-"Fa_FLvsPA"
+cDD_euc$compfrac[cDD_euc$season1=="Fa"&cDD_euc$season2=="Fa"&cDD_euc$fraction1=="E"&cDD_euc$fraction2=="B"]<-"Fa_FLvsPA"
 
-cDD_bray$compdepth[cDD_bray$season1=="Sp"&cDD_bray$season2=="Su"&cDD_bray$depth1=="S"&cDD_bray$depth2=="S"]<-"Sp-Su_Surf"
-cDD_bray$compdepth[cDD_bray$season1=="Sp"&cDD_bray$season2=="Su"&cDD_bray$depth1=="D"&cDD_bray$depth2=="D"]<-"Sp-Su_Deep"
-cDD_bray$compdepth[cDD_bray$season1=="Sp"&cDD_bray$season2=="Su"&cDD_bray$depth1=="S"&cDD_bray$depth2=="D"]<-"Sp-Su_Surf-Deep"
-cDD_bray$compdepth[cDD_bray$season1=="Sp"&cDD_bray$season2=="Su"&cDD_bray$depth1=="D"&cDD_bray$depth2=="S"]<-"Sp-Su_Surf-Deep"
+cDD_euc$compdepth[cDD_euc$season1=="Fa"&cDD_euc$season2=="Fa"&cDD_euc$depth1=="S"&cDD_euc$depth2=="S"]<-"Fa_Surf"
+cDD_euc$compdepth[cDD_euc$season1=="Fa"&cDD_euc$season2=="Fa"&cDD_euc$depth1=="D"&cDD_euc$depth2=="D"]<-"Fa_Deep"
+cDD_euc$compdepth[cDD_euc$season1=="Fa"&cDD_euc$season2=="Fa"&cDD_euc$depth1=="S"&cDD_euc$depth2=="D"]<-"Fa_SurfvsDeep"
+cDD_euc$compdepth[cDD_euc$season1=="Fa"&cDD_euc$season2=="Fa"&cDD_euc$depth1=="D"&cDD_euc$depth2=="S"]<-"Fa_SurfvsDeep"
 
-cDD_bray$compstat[cDD_bray$season1=="Su"&cDD_bray$season2=="Sp"&cDD_bray$station1=="MLB"&cDD_bray$station2=="MLB"]<-"Sp-Su_MLB"
-cDD_bray$compstat[cDD_bray$season1=="Su"&cDD_bray$season2=="Sp"&cDD_bray$station1=="15"&cDD_bray$station2=="15"]<-"Sp-Su_15"
-cDD_bray$compstat[cDD_bray$season1=="Su"&cDD_bray$season2=="Sp"&cDD_bray$station1=="110"&cDD_bray$station2=="110"]<-"Sp-Su_110"
-cDD_bray$compstat[cDD_bray$season1=="Su"&cDD_bray$season2=="Sp"&cDD_bray$station1=="MLB"&cDD_bray$station2=="15"]<-"Sp-Su_MLB-15"
-cDD_bray$compstat[cDD_bray$season1=="Su"&cDD_bray$season2=="Sp"&cDD_bray$station1=="MLB"&cDD_bray$station2=="110"]<-"Sp-Su_MLB-110"
-cDD_bray$compstat[cDD_bray$season1=="Su"&cDD_bray$season2=="Sp"&cDD_bray$station1=="15"&cDD_bray$station2=="110"]<-"Sp-Su_15-110"
-cDD_bray$compstat[cDD_bray$season1=="Su"&cDD_bray$season2=="Sp"&cDD_bray$station1=="15"&cDD_bray$station2=="MLB"]<-"Sp-Su_MLB-15"
-cDD_bray$compstat[cDD_bray$season1=="Su"&cDD_bray$season2=="Sp"&cDD_bray$station1=="110"&cDD_bray$station2=="MLB"]<-"Sp-Su_MLB-110"
-cDD_bray$compstat[cDD_bray$season1=="Su"&cDD_bray$season2=="Sp"&cDD_bray$station1=="110"&cDD_bray$station2=="15"]<-"Sp-Su_15-110"
+cDD_euc$complake[cDD_euc$season1=="Sp"&cDD_euc$season2=="Su"&cDD_euc$station1=="MLB"&cDD_euc$station2=="MLB"]<-"Sp-Su_MLB"
+cDD_euc$complake[cDD_euc$season1=="Sp"&cDD_euc$season2=="Su"&cDD_euc$station1=="15"&cDD_euc$station2=="15"]<-"Sp-Su_LM"
+cDD_euc$complake[cDD_euc$season1=="Sp"&cDD_euc$season2=="Su"&cDD_euc$station1=="110"&cDD_euc$station2=="110"]<-"Sp-Su_LM"
+cDD_euc$complake[cDD_euc$season1=="Sp"&cDD_euc$season2=="Su"&cDD_euc$station1=="MLB"&cDD_euc$station2=="15"]<-"Sp-Su_MLBvsLM"
+cDD_euc$complake[cDD_euc$season1=="Sp"&cDD_euc$season2=="Su"&cDD_euc$station1=="MLB"&cDD_euc$station2=="110"]<-"Sp-Su_MLBvsLM"
+cDD_euc$complake[cDD_euc$season1=="Sp"&cDD_euc$season2=="Su"&cDD_euc$station1=="15"&cDD_euc$station2=="110"]<-"Sp-Su_LM"
+cDD_euc$complake[cDD_euc$season1=="Sp"&cDD_euc$season2=="Su"&cDD_euc$station1=="15"&cDD_euc$station2=="MLB"]<-"Sp-Su_MLBvsLM"
+cDD_euc$complake[cDD_euc$season1=="Sp"&cDD_euc$season2=="Su"&cDD_euc$station1=="110"&cDD_euc$station2=="MLB"]<-"Sp-Su_MLBvsLM"
+cDD_euc$complake[cDD_euc$season1=="Sp"&cDD_euc$season2=="Su"&cDD_euc$station1=="110"&cDD_euc$station2=="15"]<-"Sp-Su_LM"
 
-cDD_bray$compfrac[cDD_bray$season1=="Su"&cDD_bray$season2=="Sp"&cDD_bray$fraction1=="B"&cDD_bray$fraction2=="B"]<-"Sp-Su_FL"
-cDD_bray$compfrac[cDD_bray$season1=="Su"&cDD_bray$season2=="Sp"&cDD_bray$fraction1=="E"&cDD_bray$fraction2=="E"]<-"Sp-Su_PA"
-cDD_bray$compfrac[cDD_bray$season1=="Su"&cDD_bray$season2=="Sp"&cDD_bray$fraction1=="B"&cDD_bray$fraction2=="E"]<-"Sp-Su_FL-PA"
-cDD_bray$compfrac[cDD_bray$season1=="Su"&cDD_bray$season2=="Sp"&cDD_bray$fraction1=="E"&cDD_bray$fraction2=="B"]<-"Sp-Su_FL-PA"
+cDD_euc$compstat[cDD_euc$season1=="Sp"&cDD_euc$season2=="Su"&cDD_euc$station1=="MLB"&cDD_euc$station2=="MLB"]<-"Sp-Su_MLB"
+cDD_euc$compstat[cDD_euc$season1=="Sp"&cDD_euc$season2=="Su"&cDD_euc$station1=="15"&cDD_euc$station2=="15"]<-"Sp-Su_15"
+cDD_euc$compstat[cDD_euc$season1=="Sp"&cDD_euc$season2=="Su"&cDD_euc$station1=="110"&cDD_euc$station2=="110"]<-"Sp-Su_110"
+cDD_euc$compstat[cDD_euc$season1=="Sp"&cDD_euc$season2=="Su"&cDD_euc$station1=="MLB"&cDD_euc$station2=="15"]<-"Sp-Su_MLBvs15"
+cDD_euc$compstat[cDD_euc$season1=="Sp"&cDD_euc$season2=="Su"&cDD_euc$station1=="MLB"&cDD_euc$station2=="110"]<-"Sp-Su_MLBvs110"
+cDD_euc$compstat[cDD_euc$season1=="Sp"&cDD_euc$season2=="Su"&cDD_euc$station1=="15"&cDD_euc$station2=="110"]<-"Sp-Su_15vs110"
+cDD_euc$compstat[cDD_euc$season1=="Sp"&cDD_euc$season2=="Su"&cDD_euc$station1=="15"&cDD_euc$station2=="MLB"]<-"Sp-Su_MLBvs15"
+cDD_euc$compstat[cDD_euc$season1=="Sp"&cDD_euc$season2=="Su"&cDD_euc$station1=="110"&cDD_euc$station2=="MLB"]<-"Sp-Su_MLBvs110"
+cDD_euc$compstat[cDD_euc$season1=="Sp"&cDD_euc$season2=="Su"&cDD_euc$station1=="110"&cDD_euc$station2=="15"]<-"Sp-Su_15vs110"
 
-cDD_bray$compdepth[cDD_bray$season1=="Su"&cDD_bray$season2=="Sp"&cDD_bray$depth1=="S"&cDD_bray$depth2=="S"]<-"Sp-Su_Surf"
-cDD_bray$compdepth[cDD_bray$season1=="Su"&cDD_bray$season2=="Sp"&cDD_bray$depth1=="D"&cDD_bray$depth2=="D"]<-"Sp-Su_Deep"
-cDD_bray$compdepth[cDD_bray$season1=="Su"&cDD_bray$season2=="Sp"&cDD_bray$depth1=="S"&cDD_bray$depth2=="D"]<-"Sp-Su_Surf-Deep"
-cDD_bray$compdepth[cDD_bray$season1=="Su"&cDD_bray$season2=="Sp"&cDD_bray$depth1=="D"&cDD_bray$depth2=="S"]<-"Sp-Su_Surf-Deep"
+cDD_euc$compfrac[cDD_euc$season1=="Sp"&cDD_euc$season2=="Su"&cDD_euc$fraction1=="B"&cDD_euc$fraction2=="B"]<-"Sp-Su_FL"
+cDD_euc$compfrac[cDD_euc$season1=="Sp"&cDD_euc$season2=="Su"&cDD_euc$fraction1=="E"&cDD_euc$fraction2=="E"]<-"Sp-Su_PA"
+cDD_euc$compfrac[cDD_euc$season1=="Sp"&cDD_euc$season2=="Su"&cDD_euc$fraction1=="B"&cDD_euc$fraction2=="E"]<-"Sp-Su_FLvsPA"
+cDD_euc$compfrac[cDD_euc$season1=="Sp"&cDD_euc$season2=="Su"&cDD_euc$fraction1=="E"&cDD_euc$fraction2=="B"]<-"Sp-Su_FLvsPA"
 
-cDD_bray$compstat[cDD_bray$season1=="Sp"&cDD_bray$season2=="Fa"&cDD_bray$station1=="MLB"&cDD_bray$station2=="MLB"]<-"Sp-Fa_MLB"
-cDD_bray$compstat[cDD_bray$season1=="Sp"&cDD_bray$season2=="Fa"&cDD_bray$station1=="15"&cDD_bray$station2=="15"]<-"Sp-Fa_15"
-cDD_bray$compstat[cDD_bray$season1=="Sp"&cDD_bray$season2=="Fa"&cDD_bray$station1=="110"&cDD_bray$station2=="110"]<-"Sp-Fa_110"
-cDD_bray$compstat[cDD_bray$season1=="Sp"&cDD_bray$season2=="Fa"&cDD_bray$station1=="MLB"&cDD_bray$station2=="15"]<-"Sp-Fa_MLB-15"
-cDD_bray$compstat[cDD_bray$season1=="Sp"&cDD_bray$season2=="Fa"&cDD_bray$station1=="MLB"&cDD_bray$station2=="110"]<-"Sp-Fa_MLB-110"
-cDD_bray$compstat[cDD_bray$season1=="Sp"&cDD_bray$season2=="Fa"&cDD_bray$station1=="15"&cDD_bray$station2=="110"]<-"Sp-Fa_15-110"
-cDD_bray$compstat[cDD_bray$season1=="Sp"&cDD_bray$season2=="Fa"&cDD_bray$station1=="15"&cDD_bray$station2=="MLB"]<-"Sp-Fa_MLB-15"
-cDD_bray$compstat[cDD_bray$season1=="Sp"&cDD_bray$season2=="Fa"&cDD_bray$station1=="110"&cDD_bray$station2=="MLB"]<-"Sp-Fa_MLB-110"
-cDD_bray$compstat[cDD_bray$season1=="Sp"&cDD_bray$season2=="Fa"&cDD_bray$station1=="110"&cDD_bray$station2=="15"]<-"Sp-Fa_15-110"
+cDD_euc$compdepth[cDD_euc$season1=="Sp"&cDD_euc$season2=="Su"&cDD_euc$depth1=="S"&cDD_euc$depth2=="S"]<-"Sp-Su_Surf"
+cDD_euc$compdepth[cDD_euc$season1=="Sp"&cDD_euc$season2=="Su"&cDD_euc$depth1=="D"&cDD_euc$depth2=="D"]<-"Sp-Su_Deep"
+cDD_euc$compdepth[cDD_euc$season1=="Sp"&cDD_euc$season2=="Su"&cDD_euc$depth1=="S"&cDD_euc$depth2=="D"]<-"Sp-Su_SurfvsDeep"
+cDD_euc$compdepth[cDD_euc$season1=="Sp"&cDD_euc$season2=="Su"&cDD_euc$depth1=="D"&cDD_euc$depth2=="S"]<-"Sp-Su_SurfvsDeep"
 
-cDD_bray$compfrac[cDD_bray$season1=="Sp"&cDD_bray$season2=="Fa"&cDD_bray$fraction1=="B"&cDD_bray$fraction2=="B"]<-"Sp-Fa_FL"
-cDD_bray$compfrac[cDD_bray$season1=="Sp"&cDD_bray$season2=="Fa"&cDD_bray$fraction1=="E"&cDD_bray$fraction2=="E"]<-"Sp-Fa_PA"
-cDD_bray$compfrac[cDD_bray$season1=="Sp"&cDD_bray$season2=="Fa"&cDD_bray$fraction1=="B"&cDD_bray$fraction2=="E"]<-"Sp-Fa_FL-PA"
-cDD_bray$compfrac[cDD_bray$season1=="Sp"&cDD_bray$season2=="Fa"&cDD_bray$fraction1=="E"&cDD_bray$fraction2=="B"]<-"Sp-Fa_FL-PA"
+cDD_euc$complake[cDD_euc$season1=="Su"&cDD_euc$season2=="Sp"&cDD_euc$station1=="MLB"&cDD_euc$station2=="MLB"]<-"Sp-Su_MLB"
+cDD_euc$complake[cDD_euc$season1=="Su"&cDD_euc$season2=="Sp"&cDD_euc$station1=="15"&cDD_euc$station2=="15"]<-"Sp-Su_LM"
+cDD_euc$complake[cDD_euc$season1=="Su"&cDD_euc$season2=="Sp"&cDD_euc$station1=="110"&cDD_euc$station2=="110"]<-"Sp-Su_LM"
+cDD_euc$complake[cDD_euc$season1=="Su"&cDD_euc$season2=="Sp"&cDD_euc$station1=="MLB"&cDD_euc$station2=="15"]<-"Sp-Su_MLBvsLM"
+cDD_euc$complake[cDD_euc$season1=="Su"&cDD_euc$season2=="Sp"&cDD_euc$station1=="MLB"&cDD_euc$station2=="110"]<-"Sp-Su_MLBvsLM"
+cDD_euc$complake[cDD_euc$season1=="Su"&cDD_euc$season2=="Sp"&cDD_euc$station1=="15"&cDD_euc$station2=="110"]<-"Sp-Su_LM"
+cDD_euc$complake[cDD_euc$season1=="Su"&cDD_euc$season2=="Sp"&cDD_euc$station1=="15"&cDD_euc$station2=="MLB"]<-"Sp-Su_MLBvsLM"
+cDD_euc$complake[cDD_euc$season1=="Su"&cDD_euc$season2=="Sp"&cDD_euc$station1=="110"&cDD_euc$station2=="MLB"]<-"Sp-Su_MLBvsLM"
+cDD_euc$complake[cDD_euc$season1=="Su"&cDD_euc$season2=="Sp"&cDD_euc$station1=="110"&cDD_euc$station2=="15"]<-"Sp-Su_LM"
 
-cDD_bray$compdepth[cDD_bray$season1=="Sp"&cDD_bray$season2=="Fa"&cDD_bray$depth1=="S"&cDD_bray$depth2=="S"]<-"Sp-Fa_Surf"
-cDD_bray$compdepth[cDD_bray$season1=="Sp"&cDD_bray$season2=="Fa"&cDD_bray$depth1=="D"&cDD_bray$depth2=="D"]<-"Sp-Fa_Deep"
-cDD_bray$compdepth[cDD_bray$season1=="Sp"&cDD_bray$season2=="Fa"&cDD_bray$depth1=="S"&cDD_bray$depth2=="D"]<-"Sp-Fa_Surf-Deep"
-cDD_bray$compdepth[cDD_bray$season1=="Sp"&cDD_bray$season2=="Fa"&cDD_bray$depth1=="D"&cDD_bray$depth2=="S"]<-"Sp-Fa_Surf-Deep"
+cDD_euc$compstat[cDD_euc$season1=="Su"&cDD_euc$season2=="Sp"&cDD_euc$station1=="MLB"&cDD_euc$station2=="MLB"]<-"Sp-Su_MLB"
+cDD_euc$compstat[cDD_euc$season1=="Su"&cDD_euc$season2=="Sp"&cDD_euc$station1=="15"&cDD_euc$station2=="15"]<-"Sp-Su_15"
+cDD_euc$compstat[cDD_euc$season1=="Su"&cDD_euc$season2=="Sp"&cDD_euc$station1=="110"&cDD_euc$station2=="110"]<-"Sp-Su_110"
+cDD_euc$compstat[cDD_euc$season1=="Su"&cDD_euc$season2=="Sp"&cDD_euc$station1=="MLB"&cDD_euc$station2=="15"]<-"Sp-Su_MLBvs15"
+cDD_euc$compstat[cDD_euc$season1=="Su"&cDD_euc$season2=="Sp"&cDD_euc$station1=="MLB"&cDD_euc$station2=="110"]<-"Sp-Su_MLBvs110"
+cDD_euc$compstat[cDD_euc$season1=="Su"&cDD_euc$season2=="Sp"&cDD_euc$station1=="15"&cDD_euc$station2=="110"]<-"Sp-Su_15vs110"
+cDD_euc$compstat[cDD_euc$season1=="Su"&cDD_euc$season2=="Sp"&cDD_euc$station1=="15"&cDD_euc$station2=="MLB"]<-"Sp-Su_MLBvs15"
+cDD_euc$compstat[cDD_euc$season1=="Su"&cDD_euc$season2=="Sp"&cDD_euc$station1=="110"&cDD_euc$station2=="MLB"]<-"Sp-Su_MLBvs110"
+cDD_euc$compstat[cDD_euc$season1=="Su"&cDD_euc$season2=="Sp"&cDD_euc$station1=="110"&cDD_euc$station2=="15"]<-"Sp-Su_15vs110"
 
-cDD_bray$compstat[cDD_bray$season1=="Fa"&cDD_bray$season2=="Sp"&cDD_bray$station1=="MLB"&cDD_bray$station2=="MLB"]<-"Sp-Fa_MLB"
-cDD_bray$compstat[cDD_bray$season1=="Fa"&cDD_bray$season2=="Sp"&cDD_bray$station1=="15"&cDD_bray$station2=="15"]<-"Sp-Fa_15"
-cDD_bray$compstat[cDD_bray$season1=="Fa"&cDD_bray$season2=="Sp"&cDD_bray$station1=="110"&cDD_bray$station2=="110"]<-"Sp-Fa_110"
-cDD_bray$compstat[cDD_bray$season1=="Fa"&cDD_bray$season2=="Sp"&cDD_bray$station1=="MLB"&cDD_bray$station2=="15"]<-"Sp-Fa_MLB-15"
-cDD_bray$compstat[cDD_bray$season1=="Fa"&cDD_bray$season2=="Sp"&cDD_bray$station1=="MLB"&cDD_bray$station2=="110"]<-"Sp-Fa_MLB-110"
-cDD_bray$compstat[cDD_bray$season1=="Fa"&cDD_bray$season2=="Sp"&cDD_bray$station1=="15"&cDD_bray$station2=="110"]<-"Sp-Fa_15-110"
-cDD_bray$compstat[cDD_bray$season1=="Fa"&cDD_bray$season2=="Sp"&cDD_bray$station1=="15"&cDD_bray$station2=="MLB"]<-"Sp-Fa_MLB-15"
-cDD_bray$compstat[cDD_bray$season1=="Fa"&cDD_bray$season2=="Sp"&cDD_bray$station1=="110"&cDD_bray$station2=="MLB"]<-"Sp-Fa_MLB-110"
-cDD_bray$compstat[cDD_bray$season1=="Fa"&cDD_bray$season2=="Sp"&cDD_bray$station1=="110"&cDD_bray$station2=="15"]<-"Sp-Fa_15-110"
+cDD_euc$compfrac[cDD_euc$season1=="Su"&cDD_euc$season2=="Sp"&cDD_euc$fraction1=="B"&cDD_euc$fraction2=="B"]<-"Sp-Su_FL"
+cDD_euc$compfrac[cDD_euc$season1=="Su"&cDD_euc$season2=="Sp"&cDD_euc$fraction1=="E"&cDD_euc$fraction2=="E"]<-"Sp-Su_PA"
+cDD_euc$compfrac[cDD_euc$season1=="Su"&cDD_euc$season2=="Sp"&cDD_euc$fraction1=="B"&cDD_euc$fraction2=="E"]<-"Sp-Su_FLvsPA"
+cDD_euc$compfrac[cDD_euc$season1=="Su"&cDD_euc$season2=="Sp"&cDD_euc$fraction1=="E"&cDD_euc$fraction2=="B"]<-"Sp-Su_FLvsPA"
 
-cDD_bray$compfrac[cDD_bray$season1=="Fa"&cDD_bray$season2=="Sp"&cDD_bray$fraction1=="B"&cDD_bray$fraction2=="B"]<-"Sp-Fa_FL"
-cDD_bray$compfrac[cDD_bray$season1=="Fa"&cDD_bray$season2=="Sp"&cDD_bray$fraction1=="E"&cDD_bray$fraction2=="E"]<-"Sp-Fa_PA"
-cDD_bray$compfrac[cDD_bray$season1=="Fa"&cDD_bray$season2=="Sp"&cDD_bray$fraction1=="B"&cDD_bray$fraction2=="E"]<-"Sp-Fa_FL-PA"
-cDD_bray$compfrac[cDD_bray$season1=="Fa"&cDD_bray$season2=="Sp"&cDD_bray$fraction1=="E"&cDD_bray$fraction2=="B"]<-"Sp-Fa_FL-PA"
+cDD_euc$compdepth[cDD_euc$season1=="Su"&cDD_euc$season2=="Sp"&cDD_euc$depth1=="S"&cDD_euc$depth2=="S"]<-"Sp-Su_Surf"
+cDD_euc$compdepth[cDD_euc$season1=="Su"&cDD_euc$season2=="Sp"&cDD_euc$depth1=="D"&cDD_euc$depth2=="D"]<-"Sp-Su_Deep"
+cDD_euc$compdepth[cDD_euc$season1=="Su"&cDD_euc$season2=="Sp"&cDD_euc$depth1=="S"&cDD_euc$depth2=="D"]<-"Sp-Su_SurfvsDeep"
+cDD_euc$compdepth[cDD_euc$season1=="Su"&cDD_euc$season2=="Sp"&cDD_euc$depth1=="D"&cDD_euc$depth2=="S"]<-"Sp-Su_SurfvsDeep"
 
-cDD_bray$compdepth[cDD_bray$season1=="Fa"&cDD_bray$season2=="Sp"&cDD_bray$depth1=="S"&cDD_bray$depth2=="S"]<-"Sp-Fa_Surf"
-cDD_bray$compdepth[cDD_bray$season1=="Fa"&cDD_bray$season2=="Sp"&cDD_bray$depth1=="D"&cDD_bray$depth2=="D"]<-"Sp-Fa_Deep"
-cDD_bray$compdepth[cDD_bray$season1=="Fa"&cDD_bray$season2=="Sp"&cDD_bray$depth1=="S"&cDD_bray$depth2=="D"]<-"Sp-Fa_Surf-Deep"
-cDD_bray$compdepth[cDD_bray$season1=="Fa"&cDD_bray$season2=="Sp"&cDD_bray$depth1=="D"&cDD_bray$depth2=="S"]<-"Sp-Fa_Surf-Deep"
+cDD_euc$complake[cDD_euc$season1=="Sp"&cDD_euc$season2=="Fa"&cDD_euc$station1=="MLB"&cDD_euc$station2=="MLB"]<-"Sp-Fa_MLB"
+cDD_euc$complake[cDD_euc$season1=="Sp"&cDD_euc$season2=="Fa"&cDD_euc$station1=="15"&cDD_euc$station2=="15"]<-"Sp-Fa_LM"
+cDD_euc$complake[cDD_euc$season1=="Sp"&cDD_euc$season2=="Fa"&cDD_euc$station1=="110"&cDD_euc$station2=="110"]<-"Sp-Fa_LM"
+cDD_euc$complake[cDD_euc$season1=="Sp"&cDD_euc$season2=="Fa"&cDD_euc$station1=="MLB"&cDD_euc$station2=="15"]<-"Sp-Fa_MLBvsLM"
+cDD_euc$complake[cDD_euc$season1=="Sp"&cDD_euc$season2=="Fa"&cDD_euc$station1=="MLB"&cDD_euc$station2=="110"]<-"Sp-Fa_MLBvsLM"
+cDD_euc$complake[cDD_euc$season1=="Sp"&cDD_euc$season2=="Fa"&cDD_euc$station1=="15"&cDD_euc$station2=="110"]<-"Sp-Fa_LM"
+cDD_euc$complake[cDD_euc$season1=="Sp"&cDD_euc$season2=="Fa"&cDD_euc$station1=="15"&cDD_euc$station2=="MLB"]<-"Sp-Fa_MLBvsLM"
+cDD_euc$complake[cDD_euc$season1=="Sp"&cDD_euc$season2=="Fa"&cDD_euc$station1=="110"&cDD_euc$station2=="MLB"]<-"Sp-Fa_MLBvsLM"
+cDD_euc$complake[cDD_euc$season1=="Sp"&cDD_euc$season2=="Fa"&cDD_euc$station1=="110"&cDD_euc$station2=="15"]<-"Sp-Fa_LM"
 
-cDD_bray$compstat[cDD_bray$season1=="Su"&cDD_bray$season2=="Fa"&cDD_bray$station1=="MLB"&cDD_bray$station2=="MLB"]<-"Su-Fa_MLB"
-cDD_bray$compstat[cDD_bray$season1=="Su"&cDD_bray$season2=="Fa"&cDD_bray$station1=="15"&cDD_bray$station2=="15"]<-"Su-Fa_15"
-cDD_bray$compstat[cDD_bray$season1=="Su"&cDD_bray$season2=="Fa"&cDD_bray$station1=="110"&cDD_bray$station2=="110"]<-"Su-Fa_110"
-cDD_bray$compstat[cDD_bray$season1=="Su"&cDD_bray$season2=="Fa"&cDD_bray$station1=="MLB"&cDD_bray$station2=="15"]<-"Su-Fa_MLB-15"
-cDD_bray$compstat[cDD_bray$season1=="Su"&cDD_bray$season2=="Fa"&cDD_bray$station1=="MLB"&cDD_bray$station2=="110"]<-"Su-Fa_MLB-110"
-cDD_bray$compstat[cDD_bray$season1=="Su"&cDD_bray$season2=="Fa"&cDD_bray$station1=="15"&cDD_bray$station2=="110"]<-"Su-Fa_15-110"
-cDD_bray$compstat[cDD_bray$season1=="Su"&cDD_bray$season2=="Fa"&cDD_bray$station1=="15"&cDD_bray$station2=="MLB"]<-"Su-Fa_MLB-15"
-cDD_bray$compstat[cDD_bray$season1=="Su"&cDD_bray$season2=="Fa"&cDD_bray$station1=="110"&cDD_bray$station2=="MLB"]<-"Su-Fa_MLB-110"
-cDD_bray$compstat[cDD_bray$season1=="Su"&cDD_bray$season2=="Fa"&cDD_bray$station1=="110"&cDD_bray$station2=="15"]<-"Su-Fa_15-110"
+cDD_euc$compstat[cDD_euc$season1=="Sp"&cDD_euc$season2=="Fa"&cDD_euc$station1=="MLB"&cDD_euc$station2=="MLB"]<-"Sp-Fa_MLB"
+cDD_euc$compstat[cDD_euc$season1=="Sp"&cDD_euc$season2=="Fa"&cDD_euc$station1=="15"&cDD_euc$station2=="15"]<-"Sp-Fa_15"
+cDD_euc$compstat[cDD_euc$season1=="Sp"&cDD_euc$season2=="Fa"&cDD_euc$station1=="110"&cDD_euc$station2=="110"]<-"Sp-Fa_110"
+cDD_euc$compstat[cDD_euc$season1=="Sp"&cDD_euc$season2=="Fa"&cDD_euc$station1=="MLB"&cDD_euc$station2=="15"]<-"Sp-Fa_MLBvs15"
+cDD_euc$compstat[cDD_euc$season1=="Sp"&cDD_euc$season2=="Fa"&cDD_euc$station1=="MLB"&cDD_euc$station2=="110"]<-"Sp-Fa_MLBvs110"
+cDD_euc$compstat[cDD_euc$season1=="Sp"&cDD_euc$season2=="Fa"&cDD_euc$station1=="15"&cDD_euc$station2=="110"]<-"Sp-Fa_15vs110"
+cDD_euc$compstat[cDD_euc$season1=="Sp"&cDD_euc$season2=="Fa"&cDD_euc$station1=="15"&cDD_euc$station2=="MLB"]<-"Sp-Fa_MLBvs15"
+cDD_euc$compstat[cDD_euc$season1=="Sp"&cDD_euc$season2=="Fa"&cDD_euc$station1=="110"&cDD_euc$station2=="MLB"]<-"Sp-Fa_MLBvs110"
+cDD_euc$compstat[cDD_euc$season1=="Sp"&cDD_euc$season2=="Fa"&cDD_euc$station1=="110"&cDD_euc$station2=="15"]<-"Sp-Fa_15vs110"
 
-cDD_bray$compfrac[cDD_bray$season1=="Su"&cDD_bray$season2=="Fa"&cDD_bray$fraction1=="B"&cDD_bray$fraction2=="B"]<-"Su-Fa_FL"
-cDD_bray$compfrac[cDD_bray$season1=="Su"&cDD_bray$season2=="Fa"&cDD_bray$fraction1=="E"&cDD_bray$fraction2=="E"]<-"Su-Fa_PA"
-cDD_bray$compfrac[cDD_bray$season1=="Su"&cDD_bray$season2=="Fa"&cDD_bray$fraction1=="B"&cDD_bray$fraction2=="E"]<-"Su-Fa_FL-PA"
-cDD_bray$compfrac[cDD_bray$season1=="Su"&cDD_bray$season2=="Fa"&cDD_bray$fraction1=="E"&cDD_bray$fraction2=="B"]<-"Su-Fa_FL-PA"
+cDD_euc$compfrac[cDD_euc$season1=="Sp"&cDD_euc$season2=="Fa"&cDD_euc$fraction1=="B"&cDD_euc$fraction2=="B"]<-"Sp-Fa_FL"
+cDD_euc$compfrac[cDD_euc$season1=="Sp"&cDD_euc$season2=="Fa"&cDD_euc$fraction1=="E"&cDD_euc$fraction2=="E"]<-"Sp-Fa_PA"
+cDD_euc$compfrac[cDD_euc$season1=="Sp"&cDD_euc$season2=="Fa"&cDD_euc$fraction1=="B"&cDD_euc$fraction2=="E"]<-"Sp-Fa_FLvsPA"
+cDD_euc$compfrac[cDD_euc$season1=="Sp"&cDD_euc$season2=="Fa"&cDD_euc$fraction1=="E"&cDD_euc$fraction2=="B"]<-"Sp-Fa_FLvsPA"
 
-cDD_bray$compdepth[cDD_bray$season1=="Su"&cDD_bray$season2=="Fa"&cDD_bray$depth1=="S"&cDD_bray$depth2=="S"]<-"Su-Fa_Surf"
-cDD_bray$compdepth[cDD_bray$season1=="Su"&cDD_bray$season2=="Fa"&cDD_bray$depth1=="D"&cDD_bray$depth2=="D"]<-"Su-Fa_Deep"
-cDD_bray$compdepth[cDD_bray$season1=="Su"&cDD_bray$season2=="Fa"&cDD_bray$depth1=="S"&cDD_bray$depth2=="D"]<-"Su-Fa_Surf-Deep"
-cDD_bray$compdepth[cDD_bray$season1=="Su"&cDD_bray$season2=="Fa"&cDD_bray$depth1=="D"&cDD_bray$depth2=="S"]<-"Su-Fa_Surf-Deep"
+cDD_euc$compdepth[cDD_euc$season1=="Sp"&cDD_euc$season2=="Fa"&cDD_euc$depth1=="S"&cDD_euc$depth2=="S"]<-"Sp-Fa_Surf"
+cDD_euc$compdepth[cDD_euc$season1=="Sp"&cDD_euc$season2=="Fa"&cDD_euc$depth1=="D"&cDD_euc$depth2=="D"]<-"Sp-Fa_Deep"
+cDD_euc$compdepth[cDD_euc$season1=="Sp"&cDD_euc$season2=="Fa"&cDD_euc$depth1=="S"&cDD_euc$depth2=="D"]<-"Sp-Fa_SurfvsDeep"
+cDD_euc$compdepth[cDD_euc$season1=="Sp"&cDD_euc$season2=="Fa"&cDD_euc$depth1=="D"&cDD_euc$depth2=="S"]<-"Sp-Fa_SurfvsDeep"
 
-cDD_bray$compstat[cDD_bray$season1=="Fa"&cDD_bray$season2=="Su"&cDD_bray$station1=="MLB"&cDD_bray$station2=="MLB"]<-"Su-Fa_MLB"
-cDD_bray$compstat[cDD_bray$season1=="Fa"&cDD_bray$season2=="Su"&cDD_bray$station1=="15"&cDD_bray$station2=="15"]<-"Su-Fa_15"
-cDD_bray$compstat[cDD_bray$season1=="Fa"&cDD_bray$season2=="Su"&cDD_bray$station1=="110"&cDD_bray$station2=="110"]<-"Su-Fa_110"
-cDD_bray$compstat[cDD_bray$season1=="Fa"&cDD_bray$season2=="Su"&cDD_bray$station1=="MLB"&cDD_bray$station2=="15"]<-"Su-Fa_MLB-15"
-cDD_bray$compstat[cDD_bray$season1=="Fa"&cDD_bray$season2=="Su"&cDD_bray$station1=="MLB"&cDD_bray$station2=="110"]<-"Su-Fa_MLB-110"
-cDD_bray$compstat[cDD_bray$season1=="Fa"&cDD_bray$season2=="Su"&cDD_bray$station1=="15"&cDD_bray$station2=="110"]<-"Su-Fa_15-110"
-cDD_bray$compstat[cDD_bray$season1=="Fa"&cDD_bray$season2=="Su"&cDD_bray$station1=="15"&cDD_bray$station2=="MLB"]<-"Su-Fa_MLB-15"
-cDD_bray$compstat[cDD_bray$season1=="Fa"&cDD_bray$season2=="Su"&cDD_bray$station1=="110"&cDD_bray$station2=="MLB"]<-"Su-Fa_MLB-110"
-cDD_bray$compstat[cDD_bray$season1=="Fa"&cDD_bray$season2=="Su"&cDD_bray$station1=="110"&cDD_bray$station2=="15"]<-"Su-Fa_15-110"
+cDD_euc$complake[cDD_euc$season1=="Fa"&cDD_euc$season2=="Sp"&cDD_euc$station1=="MLB"&cDD_euc$station2=="MLB"]<-"Sp-Fa_MLB"
+cDD_euc$complake[cDD_euc$season1=="Fa"&cDD_euc$season2=="Sp"&cDD_euc$station1=="15"&cDD_euc$station2=="15"]<-"Sp-Fa_LM"
+cDD_euc$complake[cDD_euc$season1=="Fa"&cDD_euc$season2=="Sp"&cDD_euc$station1=="110"&cDD_euc$station2=="110"]<-"Sp-Fa_LM"
+cDD_euc$complake[cDD_euc$season1=="Fa"&cDD_euc$season2=="Sp"&cDD_euc$station1=="MLB"&cDD_euc$station2=="15"]<-"Sp-Fa_MLBvsLM"
+cDD_euc$complake[cDD_euc$season1=="Fa"&cDD_euc$season2=="Sp"&cDD_euc$station1=="MLB"&cDD_euc$station2=="110"]<-"Sp-Fa_MLBvsLM"
+cDD_euc$complake[cDD_euc$season1=="Fa"&cDD_euc$season2=="Sp"&cDD_euc$station1=="15"&cDD_euc$station2=="110"]<-"Sp-Fa_LM"
+cDD_euc$complake[cDD_euc$season1=="Fa"&cDD_euc$season2=="Sp"&cDD_euc$station1=="15"&cDD_euc$station2=="MLB"]<-"Sp-Fa_MLBvsLM"
+cDD_euc$complake[cDD_euc$season1=="Fa"&cDD_euc$season2=="Sp"&cDD_euc$station1=="110"&cDD_euc$station2=="MLB"]<-"Sp-Fa_MLBvsLM"
+cDD_euc$complake[cDD_euc$season1=="Fa"&cDD_euc$season2=="Sp"&cDD_euc$station1=="110"&cDD_euc$station2=="15"]<-"Sp-Fa_LM"
 
-cDD_bray$compfrac[cDD_bray$season1=="Fa"&cDD_bray$season2=="Su"&cDD_bray$fraction1=="B"&cDD_bray$fraction2=="B"]<-"Su-Fa_FL"
-cDD_bray$compfrac[cDD_bray$season1=="Fa"&cDD_bray$season2=="Su"&cDD_bray$fraction1=="E"&cDD_bray$fraction2=="E"]<-"Su-Fa_PA"
-cDD_bray$compfrac[cDD_bray$season1=="Fa"&cDD_bray$season2=="Su"&cDD_bray$fraction1=="B"&cDD_bray$fraction2=="E"]<-"Su-Fa_FL-PA"
-cDD_bray$compfrac[cDD_bray$season1=="Fa"&cDD_bray$season2=="Su"&cDD_bray$fraction1=="E"&cDD_bray$fraction2=="B"]<-"Su-Fa_FL-PA"
+cDD_euc$compstat[cDD_euc$season1=="Fa"&cDD_euc$season2=="Sp"&cDD_euc$station1=="MLB"&cDD_euc$station2=="MLB"]<-"Sp-Fa_MLB"
+cDD_euc$compstat[cDD_euc$season1=="Fa"&cDD_euc$season2=="Sp"&cDD_euc$station1=="15"&cDD_euc$station2=="15"]<-"Sp-Fa_15"
+cDD_euc$compstat[cDD_euc$season1=="Fa"&cDD_euc$season2=="Sp"&cDD_euc$station1=="110"&cDD_euc$station2=="110"]<-"Sp-Fa_110"
+cDD_euc$compstat[cDD_euc$season1=="Fa"&cDD_euc$season2=="Sp"&cDD_euc$station1=="MLB"&cDD_euc$station2=="15"]<-"Sp-Fa_MLBvs15"
+cDD_euc$compstat[cDD_euc$season1=="Fa"&cDD_euc$season2=="Sp"&cDD_euc$station1=="MLB"&cDD_euc$station2=="110"]<-"Sp-Fa_MLBvs110"
+cDD_euc$compstat[cDD_euc$season1=="Fa"&cDD_euc$season2=="Sp"&cDD_euc$station1=="15"&cDD_euc$station2=="110"]<-"Sp-Fa_15vs110"
+cDD_euc$compstat[cDD_euc$season1=="Fa"&cDD_euc$season2=="Sp"&cDD_euc$station1=="15"&cDD_euc$station2=="MLB"]<-"Sp-Fa_MLBvs15"
+cDD_euc$compstat[cDD_euc$season1=="Fa"&cDD_euc$season2=="Sp"&cDD_euc$station1=="110"&cDD_euc$station2=="MLB"]<-"Sp-Fa_MLBvs110"
+cDD_euc$compstat[cDD_euc$season1=="Fa"&cDD_euc$season2=="Sp"&cDD_euc$station1=="110"&cDD_euc$station2=="15"]<-"Sp-Fa_15vs110"
 
-cDD_bray$compdepth[cDD_bray$season1=="Fa"&cDD_bray$season2=="Su"&cDD_bray$depth1=="S"&cDD_bray$depth2=="S"]<-"Su-Fa_Surf"
-cDD_bray$compdepth[cDD_bray$season1=="Fa"&cDD_bray$season2=="Su"&cDD_bray$depth1=="D"&cDD_bray$depth2=="D"]<-"Su-Fa_Deep"
-cDD_bray$compdepth[cDD_bray$season1=="Fa"&cDD_bray$season2=="Su"&cDD_bray$depth1=="S"&cDD_bray$depth2=="D"]<-"Su-Fa_Surf-Deep"
-cDD_bray$compdepth[cDD_bray$season1=="Fa"&cDD_bray$season2=="Su"&cDD_bray$depth1=="D"&cDD_bray$depth2=="S"]<-"Su-Fa_Surf-Deep"
+cDD_euc$compfrac[cDD_euc$season1=="Fa"&cDD_euc$season2=="Sp"&cDD_euc$fraction1=="B"&cDD_euc$fraction2=="B"]<-"Sp-Fa_FL"
+cDD_euc$compfrac[cDD_euc$season1=="Fa"&cDD_euc$season2=="Sp"&cDD_euc$fraction1=="E"&cDD_euc$fraction2=="E"]<-"Sp-Fa_PA"
+cDD_euc$compfrac[cDD_euc$season1=="Fa"&cDD_euc$season2=="Sp"&cDD_euc$fraction1=="B"&cDD_euc$fraction2=="E"]<-"Sp-Fa_FLvsPA"
+cDD_euc$compfrac[cDD_euc$season1=="Fa"&cDD_euc$season2=="Sp"&cDD_euc$fraction1=="E"&cDD_euc$fraction2=="B"]<-"Sp-Fa_FLvsPA"
+
+cDD_euc$compdepth[cDD_euc$season1=="Fa"&cDD_euc$season2=="Sp"&cDD_euc$depth1=="S"&cDD_euc$depth2=="S"]<-"Sp-Fa_Surf"
+cDD_euc$compdepth[cDD_euc$season1=="Fa"&cDD_euc$season2=="Sp"&cDD_euc$depth1=="D"&cDD_euc$depth2=="D"]<-"Sp-Fa_Deep"
+cDD_euc$compdepth[cDD_euc$season1=="Fa"&cDD_euc$season2=="Sp"&cDD_euc$depth1=="S"&cDD_euc$depth2=="D"]<-"Sp-Fa_SurfvsDeep"
+cDD_euc$compdepth[cDD_euc$season1=="Fa"&cDD_euc$season2=="Sp"&cDD_euc$depth1=="D"&cDD_euc$depth2=="S"]<-"Sp-Fa_SurfvsDeep"
+
+cDD_euc$complake[cDD_euc$season1=="Su"&cDD_euc$season2=="Fa"&cDD_euc$station1=="MLB"&cDD_euc$station2=="MLB"]<-"Su-Fa_MLB"
+cDD_euc$complake[cDD_euc$season1=="Su"&cDD_euc$season2=="Fa"&cDD_euc$station1=="15"&cDD_euc$station2=="15"]<-"Su-Fa_LM"
+cDD_euc$complake[cDD_euc$season1=="Su"&cDD_euc$season2=="Fa"&cDD_euc$station1=="110"&cDD_euc$station2=="110"]<-"Su-Fa_LM"
+cDD_euc$complake[cDD_euc$season1=="Su"&cDD_euc$season2=="Fa"&cDD_euc$station1=="MLB"&cDD_euc$station2=="15"]<-"Su-Fa_MLBvsLM"
+cDD_euc$complake[cDD_euc$season1=="Su"&cDD_euc$season2=="Fa"&cDD_euc$station1=="MLB"&cDD_euc$station2=="110"]<-"Su-Fa_MLBvsLM"
+cDD_euc$complake[cDD_euc$season1=="Su"&cDD_euc$season2=="Fa"&cDD_euc$station1=="15"&cDD_euc$station2=="110"]<-"Su-Fa_LM"
+cDD_euc$complake[cDD_euc$season1=="Su"&cDD_euc$season2=="Fa"&cDD_euc$station1=="15"&cDD_euc$station2=="MLB"]<-"Su-Fa_MLBvsLM"
+cDD_euc$complake[cDD_euc$season1=="Su"&cDD_euc$season2=="Fa"&cDD_euc$station1=="110"&cDD_euc$station2=="MLB"]<-"Su-Fa_MLBvsLM"
+cDD_euc$complake[cDD_euc$season1=="Su"&cDD_euc$season2=="Fa"&cDD_euc$station1=="110"&cDD_euc$station2=="15"]<-"Su-Fa_LM"
+
+cDD_euc$compstat[cDD_euc$season1=="Su"&cDD_euc$season2=="Fa"&cDD_euc$station1=="MLB"&cDD_euc$station2=="MLB"]<-"Su-Fa_MLB"
+cDD_euc$compstat[cDD_euc$season1=="Su"&cDD_euc$season2=="Fa"&cDD_euc$station1=="15"&cDD_euc$station2=="15"]<-"Su-Fa_15"
+cDD_euc$compstat[cDD_euc$season1=="Su"&cDD_euc$season2=="Fa"&cDD_euc$station1=="110"&cDD_euc$station2=="110"]<-"Su-Fa_110"
+cDD_euc$compstat[cDD_euc$season1=="Su"&cDD_euc$season2=="Fa"&cDD_euc$station1=="MLB"&cDD_euc$station2=="15"]<-"Su-Fa_MLBvs15"
+cDD_euc$compstat[cDD_euc$season1=="Su"&cDD_euc$season2=="Fa"&cDD_euc$station1=="MLB"&cDD_euc$station2=="110"]<-"Su-Fa_MLBvs110"
+cDD_euc$compstat[cDD_euc$season1=="Su"&cDD_euc$season2=="Fa"&cDD_euc$station1=="15"&cDD_euc$station2=="110"]<-"Su-Fa_15vs110"
+cDD_euc$compstat[cDD_euc$season1=="Su"&cDD_euc$season2=="Fa"&cDD_euc$station1=="15"&cDD_euc$station2=="MLB"]<-"Su-Fa_MLBvs15"
+cDD_euc$compstat[cDD_euc$season1=="Su"&cDD_euc$season2=="Fa"&cDD_euc$station1=="110"&cDD_euc$station2=="MLB"]<-"Su-Fa_MLBvs110"
+cDD_euc$compstat[cDD_euc$season1=="Su"&cDD_euc$season2=="Fa"&cDD_euc$station1=="110"&cDD_euc$station2=="15"]<-"Su-Fa_15vs110"
+
+cDD_euc$compfrac[cDD_euc$season1=="Su"&cDD_euc$season2=="Fa"&cDD_euc$fraction1=="B"&cDD_euc$fraction2=="B"]<-"Su-Fa_FL"
+cDD_euc$compfrac[cDD_euc$season1=="Su"&cDD_euc$season2=="Fa"&cDD_euc$fraction1=="E"&cDD_euc$fraction2=="E"]<-"Su-Fa_PA"
+cDD_euc$compfrac[cDD_euc$season1=="Su"&cDD_euc$season2=="Fa"&cDD_euc$fraction1=="B"&cDD_euc$fraction2=="E"]<-"Su-Fa_FLvsPA"
+cDD_euc$compfrac[cDD_euc$season1=="Su"&cDD_euc$season2=="Fa"&cDD_euc$fraction1=="E"&cDD_euc$fraction2=="B"]<-"Su-Fa_FLvsPA"
+
+cDD_euc$compdepth[cDD_euc$season1=="Su"&cDD_euc$season2=="Fa"&cDD_euc$depth1=="S"&cDD_euc$depth2=="S"]<-"Su-Fa_Surf"
+cDD_euc$compdepth[cDD_euc$season1=="Su"&cDD_euc$season2=="Fa"&cDD_euc$depth1=="D"&cDD_euc$depth2=="D"]<-"Su-Fa_Deep"
+cDD_euc$compdepth[cDD_euc$season1=="Su"&cDD_euc$season2=="Fa"&cDD_euc$depth1=="S"&cDD_euc$depth2=="D"]<-"Su-Fa_SurfvsDeep"
+cDD_euc$compdepth[cDD_euc$season1=="Su"&cDD_euc$season2=="Fa"&cDD_euc$depth1=="D"&cDD_euc$depth2=="S"]<-"Su-Fa_SurfvsDeep"
+
+cDD_euc$complake[cDD_euc$season1=="Fa"&cDD_euc$season2=="Su"&cDD_euc$station1=="MLB"&cDD_euc$station2=="MLB"]<-"Su-Fa_MLB"
+cDD_euc$complake[cDD_euc$season1=="Fa"&cDD_euc$season2=="Su"&cDD_euc$station1=="15"&cDD_euc$station2=="15"]<-"Su-Fa_LM"
+cDD_euc$complake[cDD_euc$season1=="Fa"&cDD_euc$season2=="Su"&cDD_euc$station1=="110"&cDD_euc$station2=="110"]<-"Su-Fa_LM"
+cDD_euc$complake[cDD_euc$season1=="Fa"&cDD_euc$season2=="Su"&cDD_euc$station1=="MLB"&cDD_euc$station2=="15"]<-"Su-Fa_MLBvsLM"
+cDD_euc$complake[cDD_euc$season1=="Fa"&cDD_euc$season2=="Su"&cDD_euc$station1=="MLB"&cDD_euc$station2=="110"]<-"Su-Fa_MLBvsLM"
+cDD_euc$complake[cDD_euc$season1=="Fa"&cDD_euc$season2=="Su"&cDD_euc$station1=="15"&cDD_euc$station2=="110"]<-"Su-Fa_LM"
+cDD_euc$complake[cDD_euc$season1=="Fa"&cDD_euc$season2=="Su"&cDD_euc$station1=="15"&cDD_euc$station2=="MLB"]<-"Su-Fa_MLBvsLM"
+cDD_euc$complake[cDD_euc$season1=="Fa"&cDD_euc$season2=="Su"&cDD_euc$station1=="110"&cDD_euc$station2=="MLB"]<-"Su-Fa_MLBvsLM"
+cDD_euc$complake[cDD_euc$season1=="Fa"&cDD_euc$season2=="Su"&cDD_euc$station1=="110"&cDD_euc$station2=="15"]<-"Su-Fa_LM"
+
+cDD_euc$compstat[cDD_euc$season1=="Fa"&cDD_euc$season2=="Su"&cDD_euc$station1=="MLB"&cDD_euc$station2=="MLB"]<-"Su-Fa_MLB"
+cDD_euc$compstat[cDD_euc$season1=="Fa"&cDD_euc$season2=="Su"&cDD_euc$station1=="15"&cDD_euc$station2=="15"]<-"Su-Fa_15"
+cDD_euc$compstat[cDD_euc$season1=="Fa"&cDD_euc$season2=="Su"&cDD_euc$station1=="110"&cDD_euc$station2=="110"]<-"Su-Fa_110"
+cDD_euc$compstat[cDD_euc$season1=="Fa"&cDD_euc$season2=="Su"&cDD_euc$station1=="MLB"&cDD_euc$station2=="15"]<-"Su-Fa_MLBvs15"
+cDD_euc$compstat[cDD_euc$season1=="Fa"&cDD_euc$season2=="Su"&cDD_euc$station1=="MLB"&cDD_euc$station2=="110"]<-"Su-Fa_MLBvs110"
+cDD_euc$compstat[cDD_euc$season1=="Fa"&cDD_euc$season2=="Su"&cDD_euc$station1=="15"&cDD_euc$station2=="110"]<-"Su-Fa_15vs110"
+cDD_euc$compstat[cDD_euc$season1=="Fa"&cDD_euc$season2=="Su"&cDD_euc$station1=="15"&cDD_euc$station2=="MLB"]<-"Su-Fa_MLBvs15"
+cDD_euc$compstat[cDD_euc$season1=="Fa"&cDD_euc$season2=="Su"&cDD_euc$station1=="110"&cDD_euc$station2=="MLB"]<-"Su-Fa_MLBvs110"
+cDD_euc$compstat[cDD_euc$season1=="Fa"&cDD_euc$season2=="Su"&cDD_euc$station1=="110"&cDD_euc$station2=="15"]<-"Su-Fa_15vs110"
+
+cDD_euc$compfrac[cDD_euc$season1=="Fa"&cDD_euc$season2=="Su"&cDD_euc$fraction1=="B"&cDD_euc$fraction2=="B"]<-"Su-Fa_FL"
+cDD_euc$compfrac[cDD_euc$season1=="Fa"&cDD_euc$season2=="Su"&cDD_euc$fraction1=="E"&cDD_euc$fraction2=="E"]<-"Su-Fa_PA"
+cDD_euc$compfrac[cDD_euc$season1=="Fa"&cDD_euc$season2=="Su"&cDD_euc$fraction1=="B"&cDD_euc$fraction2=="E"]<-"Su-Fa_FLvsPA"
+cDD_euc$compfrac[cDD_euc$season1=="Fa"&cDD_euc$season2=="Su"&cDD_euc$fraction1=="E"&cDD_euc$fraction2=="B"]<-"Su-Fa_FLvsPA"
+
+cDD_euc$compdepth[cDD_euc$season1=="Fa"&cDD_euc$season2=="Su"&cDD_euc$depth1=="S"&cDD_euc$depth2=="S"]<-"Su-Fa_Surf"
+cDD_euc$compdepth[cDD_euc$season1=="Fa"&cDD_euc$season2=="Su"&cDD_euc$depth1=="D"&cDD_euc$depth2=="D"]<-"Su-Fa_Deep"
+cDD_euc$compdepth[cDD_euc$season1=="Fa"&cDD_euc$season2=="Su"&cDD_euc$depth1=="S"&cDD_euc$depth2=="D"]<-"Su-Fa_SurfvsDeep"
+cDD_euc$compdepth[cDD_euc$season1=="Fa"&cDD_euc$season2=="Su"&cDD_euc$depth1=="D"&cDD_euc$depth2=="S"]<-"Su-Fa_SurfvsDeep"
 
 #removing self comparisons and calculating average per group, also remove all comparisons between seasons
-cDD_bray <- subset(cDD_bray, samp1 != samp2)
-cDD_bray <- subset(cDD_bray, season1 == season2)
-cDD_bray_frac <- subset(cDD_bray, station1 == station2 & depth1 == depth2 & fraction1 != fraction2)
-cDD_bray_stat <- subset(cDD_bray, fraction1 == fraction2 & depth1 == depth2)
-cDD_bray_depth <- subset(cDD_bray, station1 == station2 & fraction1 == fraction2)
+cDD_euc <- subset(cDD_euc, samp1 != samp2)
+cDD_euc <- subset(cDD_euc, season1 == season2)
+cDD_euc_frac <- subset(cDD_euc, station1 == station2 & depth1 == depth2 & fraction1 != fraction2)
+cDD_euc_stat <- subset(cDD_euc, fraction1 == fraction2 & depth1 == depth2 & station1 != station2)
+cDD_euc_lake <- subset(cDD_euc, fraction1 == fraction2 & depth1 == depth2 & complake != "Sp_LM" & complake != "Su_LM" & complake != "Fa_LM")
+cDD_euc_depth <- subset(cDD_euc, station1 == station2 & fraction1 == fraction2 & depth1 != depth2)
 
-compstat_mean <- ddply(cDD_bray_stat, ~compstat, function(x){data.frame(compstat_mean = mean(x$value))})
-compfrac_mean <- ddply(cDD_bray_frac, ~compfrac, function(x){data.frame(compfrac_mean = mean(x$value))})
-compdepth_mean <- ddply(cDD_bray_depth, ~compdepth, function(x){data.frame(compdepth_mean = mean(x$value))})
+compfrac_mean <- ddply(cDD_euc_frac, ~compfrac, function(x){data.frame(compfrac_mean = mean(x$value))})
+compstat_mean <- ddply(cDD_euc_stat, ~compstat, function(x){data.frame(compstat_mean = mean(x$value))})
+complake_mean <- ddply(cDD_euc_lake, ~complake, function(x){data.frame(complake_mean = mean(x$value))})
+compdepth_mean <- ddply(cDD_euc_depth, ~compdepth, function(x){data.frame(compdepth_mean = mean(x$value))})
 
-cDD_bray_frac_KW <- kruskal.test(cDD_bray_frac$value ~ as.factor(cDD_bray_frac$compfrac)) 
-print(cDD_bray_frac_KW)  # show Kruskal Wallis result
+######1. how does distance between cDNA:DNA in different fractions change over the seasons 
+cDD_euc_frac_KW <- kruskal.test(cDD_euc_frac$value ~ as.factor(cDD_euc_frac$compfrac)) 
+print(cDD_euc_frac_KW)  # show Kruskal Wallis result
 ### Which samples are significantly different from each other?  
-cDD_bray_frac_KW_MC <- kruskalmc(cDD_bray_frac$value ~ as.factor(cDD_bray_frac$compfrac))  ## Defaults to P < 0.05
-#print(bray_prod_KW_MC)
+cDD_euc_frac_KW_MC <- kruskalmc(cDD_euc_frac$value ~ as.factor(cDD_euc_frac$compfrac))  ## Defaults to P < 0.05
+print(cDD_euc_frac_KW_MC)
 
-########## continue fromn here!!!
 ### Test to find the letters to represent significance in a plot
-bray_test <- bray_prod_KW_MC$dif.com$difference # select logical vector
-names(bray_test) <- row.names(bray_prod_KW_MC$dif.com) # add comparison names
+euc_frac_test <- cDD_euc_frac_KW_MC$dif.com$difference # select logical vector
+names(euc_frac_test) <- row.names(cDD_euc_frac_KW_MC$dif.com) # add comparison names
 # create a list with "homogenous groups" coded by letter
-bray_letters <- multcompLetters(bray_test, compare="<", threshold=0.05, 
+euc_frac_letters <- multcompLetters(euc_frac_test, compare="<", threshold=0.05, 
                                 Letters=c(letters, LETTERS, "."), reversed = FALSE)
 ###  Extract the values from the multcompLetters object
-bray_sigs_dataframe <-  data.frame(as.vector(names(bray_letters$Letters)), as.vector(bray_letters$Letters))
-colnames(bray_sigs_dataframe) <- c("troph_lim1", "siglabel")
-bray_try <- merge(prod_beta, bray_sigs_dataframe, by = "troph_lim1")
+euc_frac_sigs_dataframe <-  data.frame(as.vector(names(euc_frac_letters$Letters)), as.vector(euc_frac_letters$Letters))
+colnames(euc_frac_sigs_dataframe) <- c("compfrac", "siglabel")
+euc_frac_try <- merge(cDD_euc_frac, euc_frac_sigs_dataframe, by = "compfrac")
 
+euc_frac_try$compfrac <-factor(euc_frac_try$compfrac,levels=c( "Sp_FLvsPA", "Su_FLvsPA", "Fa_FLvsPA"))
 
-bray_try$troph_lim1 <-factor(bray_try$troph_lim1,
-                             levels=c( "Productive Epilimnion Free", "Productive Epilimnion Particle", "Productive Hypolimnion Free","Productive Hypolimnion Particle","Unproductive Epilimnion Free", "Unproductive Epilimnion Particle", "Unproductive Hypolimnion Free", "Unproductive Hypolimnion Particle"))
-
-
-bray_sigs <- bray_try %>%
-  select(trophicstate1, troph_lim1, siglabel) %>%
+euc_frac_sigs <- euc_frac_try %>%
+  select(season1, compfrac, siglabel) %>%
   distinct()
 
-bray_boxplot <- ggplot(bray_try, aes(x = troph_lim1, y = value, fill = troph_lim1)) + geom_point(size = 2) +
+euc_frac_boxplot <- ggplot(euc_frac_try, aes(x = compfrac, y = value, fill = compfrac)) + geom_point(size = 2) +
   geom_boxplot() +
-  geom_text(data = bray_sigs, aes(label = siglabel, x = troph_lim1, y = 0.92), size =3) +
-  scale_fill_manual(name = "", limits=c("Productive Epilimnion Particle", "Productive Epilimnion Free", 
-                                        "Productive Hypolimnion Particle", "Productive Hypolimnion Free",
-                                         "Unproductive Epilimnion Particle", "Unproductive Epilimnion Free", 
-                                        "Unproductive Hypolimnion Particle", "Unproductive Hypolimnion Free"), 
-                     values = c("royalblue4", "royalblue4", "royalblue4", "royalblue4",
-                                "cornflowerblue","cornflowerblue","cornflowerblue","cornflowerblue"))+
-  scale_x_discrete(breaks=c("Productive Epilimnion Free", "Productive Epilimnion Particle", 
-                            "Productive Hypolimnion Free","Productive Hypolimnion Particle",
-                            "Unproductive Epilimnion Free", "Unproductive Epilimnion Particle",
-                            "Unproductive Hypolimnion Free", "Unproductive Hypolimnion Particle"),
-                   labels=c("Epilimnion \nFree-Living (12)", "Epilimnion \nParticle-Associated (12)", 
-                            "Hypolimnion \nFree-Living (8)", "Hypolimnion \nParticle-Associated (8)",
-                            "Epilimnion \nFree-Living (12)", "Epilimnion \nParticle-Associated (6)", 
-                            "Hypolimnion \nFree-Living (12)", "Hypolimnion \nParticle-Associated (12)")) + 
-  xlab("Habitat") + ylab("Bray-Curtis \nDissimilarity") + theme_bw() + #scale_fill_brewer(palette="Paired") + 
-  facet_grid(. ~ trophicstate1, scale = "free", space = "free") +
+  geom_text(data = euc_frac_sigs, aes(label = siglabel, x = compfrac, y = 25), size = 4) +
+  scale_fill_manual(name = "", limits=c("Sp_FLvsPA", "Su_FLvsPA", "Fa_FLvsPA"), 
+                     values = c("Sp_FLvsPA" = "grey","Su_FLvsPA" = "grey","Fa_FLvsPA" = "grey"))+
+  scale_x_discrete(breaks=c("Sp_FLvsPA", "Su_FLvsPA", "Fa_FLvsPA"),
+                   labels=c("Spring\n(n=...)", "Summer\n(n=...)", "Fall\n(n=...)")) + 
+  xlab("Seasonal distance between cDNA:DNA ratios in FL and PA fractions)") + ylab("Euclidean distance\nlog(cDNA:DNA)") + theme_bw() + #scale_fill_brewer(palette="Paired") + 
+  facet_grid(. ~ season1, scale = "free", space = "free") +
   theme(plot.title = element_text(face="bold", size = 12),  #Set the plot title
                                  strip.text.x = element_blank(),  #Set the facet titles on x-axis 
                                  strip.text.y = element_blank(),  #Set the facet titles on x-axis 
                                  strip.background = element_blank(),  #Set the facet background to no background
                                  axis.title.x = element_text(face="bold", size=10),  #Set the x-axis title
                                  axis.title.y = element_text(face="bold", size=10),  #Set the y-axis title
-                                 axis.text.x = element_text(angle=30, colour = "black", 
-                                                            vjust=1, hjust = 1, size=8),  #Set the x-axis labels
-                                 axis.text.y = element_text(colour = "black", size=8),  #Set the y-axis labels
+                                 axis.text.x = element_text(angle=0, colour = "black", 
+                                                            vjust=1, hjust = 1, size=10),  #Set the x-axis labels
+                                 axis.text.y = element_text(colour = "black", size=10),  #Set the y-axis labels
                                  legend.title = element_text(size = 8, face="bold"),  #Set the legend title 
                                  legend.text = element_text(size = 8),  #Set the legend text
                                  legend.position="none", #Default the legend position to the right
-                                 plot.margin = unit(c(0.1, 0.1, 0.1, 0.1), "cm"));  #top, right, bottom, left
+                                 plot.margin = unit(c(0.1, 0.1, 0.1, 0.1), "cm")); euc_frac_boxplot#top, right, bottom, left
 
+###### 2. how does distance between cDNA:DNA in different stations change over the seasons 
+cDD_euc_stat_KW <- kruskal.test(cDD_euc_stat$value ~ as.factor(cDD_euc_stat$compstat)) 
+print(cDD_euc_stat_KW)  # show Kruskal Wallis result
+### Which samples are significantly different from each other?  
+cDD_euc_stat_KW_MC <- kruskalmc(cDD_euc_stat$value ~ as.factor(cDD_euc_stat$compstat))  ## Defaults to P < 0.05
+print(cDD_euc_stat_KW_MC)
+
+###### 3. how does distance between cDNA:DNA in different lakes change over the seasons 
+cDD_euc_lake_KW <- kruskal.test(cDD_euc_lake$value ~ as.factor(cDD_euc_lake$complake)) 
+print(cDD_euc_lake_KW)  # show Kruskal Wallis result
+### Which samples are significantly different from each other?  
+cDD_euc_lake_KW_MC <- kruskalmc(cDD_euc_lake$value ~ as.factor(cDD_euc_lake$complake))  ## Defaults to P < 0.05
+print(cDD_euc_lake_KW_MC)
+
+### Test to find the letters to represent significance in a plot
+euc_lake_test <- cDD_euc_lake_KW_MC$dif.com$difference # select logical vector
+names(euc_lake_test) <- row.names(cDD_euc_lake_KW_MC$dif.com) # add comparison names
+# create a list with "homogenous groups" coded by letter
+euc_lake_letters <- multcompLetters(euc_lake_test, compare="<", threshold=0.05, 
+                                Letters=c(letters, LETTERS, "."), reversed = FALSE)
+###  Extract the values from the multcompLetters object
+euc_lake_sigs_dataframe <-  data.frame(as.vector(names(euc_lake_letters$Letters)), as.vector(euc_lake_letters$Letters))
+colnames(euc_lake_sigs_dataframe) <- c("complake", "siglabel")
+euc_lake_try <- merge(cDD_euc_lake, euc_lake_sigs_dataframe, by = "complake")
+
+euc_lake_try$complake <-factor(euc_lake_try$complake,levels=c( "Sp_MLBvsLM", "Su_MLBvsLM", "Fa_MLBvsLM"))
+
+euc_lake_sigs <- euc_lake_try %>%
+  select(season1, complake, siglabel) %>%
+  distinct()
+
+euc_lake_boxplot <- ggplot(euc_lake_try, aes(x = complake, y = value, fill = complake)) + geom_point(size = 2) +
+  geom_boxplot() +
+  geom_text(data = euc_lake_sigs, aes(label = siglabel, x = complake, y = 25), size = 4) +
+  scale_fill_manual(name = "", limits=c("Sp_MLBvsLM", "Su_MLBvsLM", "Fa_MLBvsLM"), 
+                     values = c("Sp_MLBvsLM" = "grey","Su_MLBvsLM" = "grey","Fa_MLBvsLM" = "grey"))+
+  scale_x_discrete(breaks=c("Sp_MLBvsLM", "Su_MLBvsLM", "Fa_MLBvsLM"),
+                   labels=c("Spring\n(n=...)", "Summer\n(n=...)", "Fall\n(n=...)")) + 
+  xlab("Seasonal distance between cDNA:DNA ratios in Lake MI and Muskegon Lake)") + ylab("Euclidean distance\nlog(cDNA:DNA)") + theme_bw() + #scale_fill_brewer(palette="Paired") + 
+  facet_grid(. ~ season1, scale = "free", space = "free") +
+  theme(plot.title = element_text(face="bold", size = 12),  #Set the plot title
+                                 strip.text.x = element_blank(),  #Set the facet titles on x-axis 
+                                 strip.text.y = element_blank(),  #Set the facet titles on x-axis 
+                                 strip.background = element_blank(),  #Set the facet background to no background
+                                 axis.title.x = element_text(face="bold", size=10),  #Set the x-axis title
+                                 axis.title.y = element_text(face="bold", size=10),  #Set the y-axis title
+                                 axis.text.x = element_text(angle=0, colour = "black", 
+                                                            vjust=1, hjust = 1, size=10),  #Set the x-axis labels
+                                 axis.text.y = element_text(colour = "black", size=10),  #Set the y-axis labels
+                                 legend.title = element_text(size = 8, face="bold"),  #Set the legend title 
+                                 legend.text = element_text(size = 8),  #Set the legend text
+                                 legend.position="none", #Default the legend position to the right
+                                 plot.margin = unit(c(0.1, 0.1, 0.1, 0.1), "cm")); euc_lake_boxplot#top, right, bottom, left
+
+###### 4. how does distance between cDNA:DNA in different depths change over the seasons 
+cDD_euc_depth_KW <- kruskal.test(cDD_euc_depth$value ~ as.factor(cDD_euc_depth$compdepth)) 
+print(cDD_euc_depth_KW)  # show Kruskal Wallis result
+### Which samples are significantly different from each other?  
+cDD_euc_depth_KW_MC <- kruskalmc(cDD_euc_depth$value ~ as.factor(cDD_euc_depth$compdepth))  ## Defaults to P < 0.05
+print(cDD_euc_depth_KW_MC)
+
+### Test to find the letters to represent significance in a plot
+euc_depth_test <- cDD_euc_depth_KW_MC$dif.com$difference # select logical vector
+names(euc_depth_test) <- row.names(cDD_euc_depth_KW_MC$dif.com) # add comparison names
+# create a list with "homogenous groups" coded by letter
+euc_depth_letters <- multcompLetters(euc_depth_test, compare="<", threshold=0.05, 
+                                Letters=c(letters, LETTERS, "."), reversed = FALSE)
+###  Extract the values from the multcompLetters object
+euc_depth_sigs_dataframe <-  data.frame(as.vector(names(euc_depth_letters$Letters)), as.vector(euc_depth_letters$Letters))
+colnames(euc_depth_sigs_dataframe) <- c("compdepth", "siglabel")
+euc_depth_try <- merge(cDD_euc_depth, euc_depth_sigs_dataframe, by = "compdepth")
+
+euc_depth_try$compdepth <-factor(euc_depth_try$compdepth,levels=c( "Sp_SurfvsDeep", "Su_SurfvsDeep", "Fa_SurfvsDeep"))
+
+euc_depth_sigs <- euc_depth_try %>%
+  select(season1, compdepth, siglabel) %>%
+  distinct()
+
+euc_depth_boxplot <- ggplot(euc_depth_try, aes(x = compdepth, y = value, fill = compdepth)) + geom_point(size = 2) +
+  geom_boxplot() +
+  geom_text(data = euc_depth_sigs, aes(label = siglabel, x = compdepth, y = 25), size = 4) +
+  scale_fill_manual(name = "", limits=c("Sp_SurfvsDeep", "Su_SurfvsDeep", "Fa_SurfvsDeep"), 
+                     values = c("Sp_SurfvsDeep" = "grey","Su_SurfvsDeep" = "grey","Fa_SurfvsDeep" = "grey"))+
+  scale_x_discrete(breaks=c("Sp_SurfvsDeep", "Su_SurfvsDeep", "Fa_SurfvsDeep"),
+                   labels=c("Spring\n(n=...)", "Summer\n(n=...)", "Fall\n(n=...)")) + 
+  xlab("Seasonal distance between cDNA:DNA ratios in surace and deep)") + ylab("Euclidean distance\nlog(cDNA:DNA)") + theme_bw() + #scale_fill_brewer(palette="Paired") + 
+  facet_grid(. ~ season1, scale = "free", space = "free") +
+  theme(plot.title = element_text(face="bold", size = 12),  #Set the plot title
+                                 strip.text.x = element_blank(),  #Set the facet titles on x-axis 
+                                 strip.text.y = element_blank(),  #Set the facet titles on x-axis 
+                                 strip.background = element_blank(),  #Set the facet background to no background
+                                 axis.title.x = element_text(face="bold", size=10),  #Set the x-axis title
+                                 axis.title.y = element_text(face="bold", size=10),  #Set the y-axis title
+                                 axis.text.x = element_text(angle=0, colour = "black", 
+                                                            vjust=1, hjust = 1, size=10),  #Set the x-axis labels
+                                 axis.text.y = element_text(colour = "black", size=10),  #Set the y-axis labels
+                                 legend.title = element_text(size = 8, face="bold"),  #Set the legend title 
+                                 legend.text = element_text(size = 8),  #Set the legend text
+                                 legend.position="none", #Default the legend position to the right
+                                 plot.margin = unit(c(0.1, 0.1, 0.1, 0.1), "cm")); euc_depth_boxplot#top, right, bottom, left
+```
+
+```{r}
 ####pull out most different, highly active OTUs
 #make dataframes with ratio data, exclude MLB (very different communities), make subsets for Sp and Fa
 mf_cD2D_Sp <- data.frame(otu_table(subset_samples(subset_samples(cDD_physeq, Station != "MLB"),Season == "Sp")))
