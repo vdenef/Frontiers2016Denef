@@ -1882,51 +1882,12 @@ dev.off()
 ```
 
 ```{r identify significantly more active than present OTUs}
-####pull out most different, highly active OTUs
-#make dataframes with ratio data, exclude MLB (very different communities), make subsets for Sp and Fa
-mf_cD2D_Sp <- data.frame(otu_table(subset_samples(subset_samples(cDD_physeq, Station != "MLB"),Season == "Sp")))
-mf_cD2D_SpPA <- data.frame(otu_table(subset_samples(subset_samples(subset_samples(cDD_physeq, Station != "MLB"),Season == "Sp"),Fraction == "E")))
-mf_cD2D_SpFL <- data.frame(otu_table(subset_samples(subset_samples(subset_samples(cDD_physeq, Station != "MLB"),Season == "Sp"),Fraction == "B")))
-  
-mf_cD2D_Fa<-data.frame(otu_table(subset_samples(subset_samples(cDD_physeq, Station != "MLB"),Season == "Fa")))
-mf_cD2D_FaPA <- data.frame(otu_table(subset_samples(subset_samples(subset_samples(cDD_physeq, Station != "MLB"),Season == "Fa"),Fraction == "E")))
-mf_cD2D_FaFL <- data.frame(otu_table(subset_samples(subset_samples(subset_samples(cDD_physeq, Station != "MLB"),Season == "Fa"),Fraction == "B")))
-
-mf_cD2D_Su<-data.frame(otu_table(subset_samples(subset_samples(subset_samples(cDD_physeq, Station != "MLB"),Season == "Su"),names != "Su.BcD.110.DN")))
-mf_cD2D_SuPA <- data.frame(otu_table(subset_samples(subset_samples(subset_samples(subset_samples(cDD_physeq, Station != "MLB"),Season == "Su"),Fraction == "E"),names != "Su.BcD.110.DN")))
-mf_cD2D_SuFL <- data.frame(otu_table(subset_samples(subset_samples(subset_samples(subset_samples(cDD_physeq, Station != "MLB"),Season == "Su"),Fraction == "B"),names != "Su.BcD.110.DN")))
-
-#do stats to determine those OTUs with similar ratio between Sp PA and FL but diff between Su and Fa PA vs FL
-
-#Also extract OTUs that are most variable in ratio cD:D over space and time -- for this create dataframe populated by cD:D data, calculate average and stdev, also add minimum and average cD data and min and avg D data
-# start with all data
-colnames(mf_cD2D) <- paste("cD2D", colnames(mf_cD2D), sep = "_")
-co.var <- function(x) ( 100*sd(x)/mean(x) )
-cD2D_stats <- transform(mf_cD2D, RAT_MEAN = apply(X = mf_cD2D,1, mean, na.rm = TRUE), RAT_SD=apply(X = mf_cD2D,1, sd, na.rm = TRUE), RAT_CV=apply(X = mf_cD2D,1,co.var), RAT_MAX=apply(X = mf_cD2D,1, max, na.rm = TRUE))
-mf_cD_t <- mf_cD[,-48]
-mf_D_t <- mf_D[,-48]
-cD_stats <- select(transform(mf_cD_t, cD_MEAN = apply(X = mf_cD_t,1, mean, na.rm = TRUE), cD_COUNT = rowSums(mf_cD_t > 0)),cD_MEAN, cD_COUNT)
-D_stats <- select(transform(mf_D_t, D_MEAN = apply(X = mf_D_t,1, mean, na.rm = TRUE), D_COUNT = rowSums(mf_D_t > 0)),D_MEAN, D_COUNT)
-cD2D_stats$OTU <- rownames(cD2D_stats)
-D_stats$OTU <- rownames(D_stats)
-cD_stats$OTU <- rownames(cD_stats)
-count_ratio_summary <- merge(cD2D_stats,cD_stats,by="OTU")
-count_ratio_summary$OTU = rownames(cD2D_stats)
-count_ratio_summary <- merge(count_ratio_summary,D_stats,by="OTU")
-count_ratio_summary$OTU = rownames(cD2D_stats)
-cDD_TAX_t <- as.data.frame(cDD_TAX)
-cDD_TAX_t$OTU <- rownames(cDD_TAX)
-count_ratio_summary <- merge(count_ratio_summary,cDD_TAX_t,by="OTU")
-count_ratio_summary$OTU = rownames(cD2D_stats)
-View(arrange(filter(count_ratio_summary, cD_COUNT > 30),-RAT_CV))
-## would be god to work toward a figure with boxplots for cDNA, DNA, and cD2D data for each OTU, ordered by decreasing CV only including OTUs detected in x% of samples
-
 ########## cDNA vs DNA DEseq ##########
 
 phylum.colors<-group.colors
 
 # deseq without pruning low abundance - otu level - per fraction - PA - no scaling (done by DEseq2!)
-raw_merged_PA <- subset_samples(raw_merged, Fraction != "B")
+raw_merged_PA <- subset_samples(raw_merged_toptaxa, Fraction != "B")
 deseq_otu_DNAcDNA_PA_raw <- deSEQ_noprune(raw_merged_PA, ~ DNA)
 deseq_otu_DNAcDNA_PA_raw$plotvalue <- log(as.numeric(deseq_otu_DNAcDNA_PA_raw$baseMean),2)
 deseq_otu_DNAcDNA_PA_raw$sig <- as.factor((deseq_otu_DNAcDNA_PA_raw$padj<0.01)*1)
@@ -1936,7 +1897,7 @@ deseq_otu_DNAcDNA_plot_PA_raw
 #dev.off()
 
 # deseq without pruning low abundance - otu level - per fraction - FL - no scaling (done by DEseq2!)
-raw_merged_FL <- subset_samples(raw_merged, Fraction != "E")
+raw_merged_FL <- subset_samples(raw_merged_toptaxa, Fraction != "E")
 deseq_otu_DNAcDNA_FL_raw <- deSEQ_noprune(raw_merged_FL, ~ DNA)
 deseq_otu_DNAcDNA_FL_raw$plotvalue <- log(as.numeric(deseq_otu_DNAcDNA_FL_raw$baseMean),2)
 deseq_otu_DNAcDNA_FL_raw$sig <- as.factor((deseq_otu_DNAcDNA_FL_raw$padj<0.01)*1)
@@ -1959,105 +1920,54 @@ for  (i in 1:length(Phylum_temp)){
 deseq_otu_DNAcDNA_FL_raw$Phylum_plot <- Phylum_temp
 
 deseq_otu_DNAcDNA_FLandPA_raw<-rbind(deseq_otu_DNAcDNA_FL_raw,deseq_otu_DNAcDNA_PA_raw)
+
+pdf(file="Figures/Rplot_cDvsD_FL_noscale_top200.pdf", width= 20, height=15, pointsize= 14, useDingbats=FALSE)
 deseq_otu_DNAcDNA_FLandPA_raw$Phylum_plot <-factor(deseq_otu_DNAcDNA_FLandPA_raw$Phylum_plot,levels=c("Proteobacteria FL","Proteobacteria PA","Alphaproteobacteria FL","Alphaproteobacteria PA","Betaproteobacteria FL","Betaproteobacteria PA","Gammaproteobacteria FL","Gammaproteobacteria PA","Deltaproteobacteria FL","Deltaproteobacteria PA","Bacteroidetes FL","Bacteroidetes PA","Cytophagia FL","Cytophagia PA","Flavobacteria FL","Flavobacteria PA","Sphingobacteria FL","Sphingobacteria PA","Actinobacteria FL","Actinobacteria PA","Cyanobacteria FL","Cyanobacteria PA","Verrucomicrobia FL","Verrucomicrobia PA","Planctomycetes FL","Planctomycetes PA","Chloroflexi FL","Chloroflexi PA","Acidobacteria FL","Acidobacteria PA","Armatimonadetes FL","Armatimonadetes PA","Firmicutes FL","Firmicutes PA","Gemmatimonadetes FL","Gemmatimonadetes PA","unclassified FL","unclassified PA"))
 deseq_otu_DNAcDNA_plot_FLandPA_raw <- plot_deSEQ_combo(deseq_otu_DNAcDNA_FLandPA_raw, "OTU cDNA:DNA FL and PA samples")
 deseq_otu_DNAcDNA_plot_FLandPA_raw
+dev.off()
 
-# deseq without pruning low abundance - otu level - compare groups based on cD:D PCoA - no scaling (done by DEseq2!)
-# we will remove MLB then make two groups (1) Spring FL and PA, Su and Fa FL (2) Su and Fa PA
-raw_merged_noMLB_Sp <- subset_samples(subset_samples(raw_merged, Station != "MLB"), Season == "Sp")
-raw_merged_noMLB_SpPA <- subset_samples(raw_merged_noMLB_Sp, Fraction != "B")
-raw_merged_noMLB_SpFL <- subset_samples(raw_merged_noMLB_Sp, Fraction != "E")
-sample_data(raw_merged)$names = rownames(sample_data(raw_merged))
-raw_merged_noMLB_SuFaPA <- subset_samples(subset_samples(subset_samples(raw_merged, Fraction != "B"), Season != "Sp"), names != "Su.EcD.110.DN")
-raw_merged_noMLB_SuFaFL <- subset_samples(subset_samples(raw_merged, Fraction != "E"), Season != "Sp")
-raw_merged_noMLB_SuFaPA_SpPAFL <- merge_phyloseq(raw_merged_noMLB_Sp,raw_merged_noMLB_SuFaPA)
+####pull out most different, highly active OTUs
+#make dataframes with ratio data, exclude MLB (very different communities), make subsets for Sp and Fa
+mf_cD2D_Sp <- data.frame(otu_table(subset_samples(subset_samples(cDD_physeq, Station != "MLB"),Season == "Sp")))
+mf_cD2D_SpPA <- data.frame(otu_table(subset_samples(subset_samples(subset_samples(cDD_physeq, Station != "MLB"),Season == "Sp"),Fraction == "E")))
+mf_cD2D_SpFL <- data.frame(otu_table(subset_samples(subset_samples(subset_samples(cDD_physeq, Station != "MLB"),Season == "Sp"),Fraction == "B")))
+  
+mf_cD2D_Fa<-data.frame(otu_table(subset_samples(subset_samples(cDD_physeq, Station != "MLB"),Season == "Fa")))
+mf_cD2D_FaPA <- data.frame(otu_table(subset_samples(subset_samples(subset_samples(cDD_physeq, Station != "MLB"),Season == "Fa"),Fraction == "E")))
+mf_cD2D_FaFL <- data.frame(otu_table(subset_samples(subset_samples(subset_samples(cDD_physeq, Station != "MLB"),Season == "Fa"),Fraction == "B")))
+
+mf_cD2D_Su<-data.frame(otu_table(subset_samples(subset_samples(subset_samples(cDD_physeq, Station != "MLB"),Season == "Su"),names != "Su.BcD.110.DN")))
+mf_cD2D_SuPA <- data.frame(otu_table(subset_samples(subset_samples(subset_samples(subset_samples(cDD_physeq, Station != "MLB"),Season == "Su"),Fraction == "E"),names != "Su.BcD.110.DN")))
+mf_cD2D_SuFL <- data.frame(otu_table(subset_samples(subset_samples(subset_samples(subset_samples(cDD_physeq, Station != "MLB"),Season == "Su"),Fraction == "B"),names != "Su.BcD.110.DN")))
+
+#do stats to determine those OTUs with similar ratio between Sp PA and FL but diff between Su and Fa PA vs FL
+# TO BE ADDED
+
+#Also extract OTUs that are most variable in ratio cD:D over space and time -- for this create dataframe populated by cD:D data, calculate average and stdev, also add minimum and average cD data and min and avg D data
+# start with all data
+colnames(mf_cD2D) <- paste("cD2D", colnames(mf_cD2D), sep = "_")
+co.var <- function(x) ( 100*sd(x)/mean(x) )
+cD2D_stats <- transform(mf_cD2D, RAT_MEAN = apply(X = mf_cD2D,1, mean, na.rm = TRUE), RAT_SD=apply(X = mf_cD2D,1, sd, na.rm = TRUE), RAT_CV=apply(X = mf_cD2D,1,co.var), RAT_MAX=apply(X = mf_cD2D,1, max, na.rm = TRUE))
+mf_cD_t <- mf_cD[,-48]
+mf_D_t <- mf_D[,-48]
+cD_stats <- select(transform(mf_cD_t, cD_MEAN = apply(X = mf_cD_t,1, mean, na.rm = TRUE), cD_COUNT = rowSums(mf_cD_t > 0)),cD_MEAN, cD_COUNT)
+D_stats <- select(transform(mf_D_t, D_MEAN = apply(X = mf_D_t,1, mean, na.rm = TRUE), D_COUNT = rowSums(mf_D_t > 0)),D_MEAN, D_COUNT)
+cD2D_stats$OTU <- rownames(cD2D_stats)
+D_stats$OTU <- rownames(D_stats)
+cD_stats$OTU <- rownames(cD_stats)
+count_ratio_summary <- merge(cD2D_stats,cD_stats,by="OTU")
+count_ratio_summary$OTU = rownames(cD2D_stats)
+count_ratio_summary <- merge(count_ratio_summary,D_stats,by="OTU")
+count_ratio_summary$OTU = rownames(cD2D_stats)
+cDD_TAX_t <- as.data.frame(cDD_TAX)
+cDD_TAX_t$OTU <- rownames(cDD_TAX)
+count_ratio_summary <- merge(count_ratio_summary,cDD_TAX_t,by="OTU")
+count_ratio_summary$OTU = rownames(cD2D_stats)
+View(arrange(filter(count_ratio_summary, cD_COUNT > 30),-RAT_CV))
+## would be good to work toward a figure with boxplots for cDNA, DNA, and cD2D data for each OTU, ordered by decreasing CV only including OTUs detected in x% of samples
 
 
-
-# deseq without pruning low abundance - otu level - compare groups based on cD:D PCoA - no scaling (done by DEseq2!)
-# we will remove MLB then make two groups (1) Spring FL and PA, Su and Fa FL (2) Su and Fa PA
-raw_merged_noMLB_Sp <- subset_samples(subset_samples(raw_merged, Station != "MLB"), Season == "Sp")
-raw_merged_noMLB_SpPA <- subset_samples(raw_merged_noMLB_Sp, Fraction != "B")
-raw_merged_noMLB_SpFL <- subset_samples(raw_merged_noMLB_Sp, Fraction != "E")
-sample_data(raw_merged)$names = rownames(sample_data(raw_merged))
-raw_merged_noMLB_SuFaPA <- subset_samples(subset_samples(subset_samples(raw_merged, Fraction != "B"), Season != "Sp"), names != "Su.EcD.110.DN")
-raw_merged_noMLB_SuFaFL <- subset_samples(subset_samples(raw_merged, Fraction != "E"), Season != "Sp")
-raw_merged_noMLB_SuFaPA_SpPAFL <- merge_phyloseq(raw_merged_noMLB_Sp,raw_merged_noMLB_SuFaPA)
-
-#now run DEseq2 Sp samples
-deseq_otu_DNAcDNA_noMLB_Sp <- deSEQ_noprune(raw_merged_noMLB_Sp, ~ DNA)
-deseq_otu_DNAcDNA_noMLB_Sp$plotvalue <- log(as.numeric(deseq_otu_DNAcDNA_noMLB_Sp$baseMean),2)
-deseq_otu_DNAcDNA_noMLB_Sp$sig <- as.factor((deseq_otu_DNAcDNA_noMLB_Sp$padj<0.05)*1)
-deseq_otu_DNAcDNA_noMLB_Sp_plot <- plot_deSEQ(deseq_otu_DNAcDNA_noMLB_Sp, "OTU cDNA:DNA Sp PA/FL samples no MLB")
-#pdf(file="/Users/vdenef/Documents/UMich/Papers/2015_Fujimoto_activity_Frontiers/Rplot_cDvsD_FL_noscale.pdf", width= 20, height=15, pointsize= 14, useDingbats=FALSE)
-deseq_otu_DNAcDNA_noMLB_Sp_plot
-#dev.off()
-
-#now run DEseq2 Sp PA samples
-deseq_otu_DNAcDNA_noMLB_SpPA <- deSEQ_noprune(raw_merged_noMLB_SpPA, ~ DNA)
-deseq_otu_DNAcDNA_noMLB_SpPA$plotvalue <- log(as.numeric(deseq_otu_DNAcDNA_noMLB_SpPA$baseMean),2)
-deseq_otu_DNAcDNA_noMLB_SpPA$sig <- as.factor((deseq_otu_DNAcDNA_noMLB_SpPA$padj<0.05)*1)
-deseq_otu_DNAcDNA_noMLB_SpPA_plot <- plot_deSEQ(deseq_otu_DNAcDNA_noMLB_SpPA, "OTU cDNA:DNA Sp PA samples no MLB")
-#pdf(file="/Users/vdenef/Documents/UMich/Papers/2015_Fujimoto_activity_Frontiers/Rplot_cDvsD_FL_noscale.pdf", width= 20, height=15, pointsize= 14, useDingbats=FALSE)
-deseq_otu_DNAcDNA_noMLB_SpPA_plot
-#dev.off()
-
-#now run DEseq2 Sp FL samples
-deseq_otu_DNAcDNA_noMLB_SpFL <- deSEQ_noprune(raw_merged_noMLB_SpFL, ~ DNA)
-deseq_otu_DNAcDNA_noMLB_SpFL$plotvalue <- log(as.numeric(deseq_otu_DNAcDNA_noMLB_SpFL$baseMean),2)
-deseq_otu_DNAcDNA_noMLB_SpFL$sig <- as.factor((deseq_otu_DNAcDNA_noMLB_SpFL$padj<0.05)*1)
-deseq_otu_DNAcDNA_noMLB_SpFL_plot <- plot_deSEQ(deseq_otu_DNAcDNA_noMLB_SpFL, "OTU cDNA:DNA Sp PA samples no MLB")
-#pdf(file="/Users/vdenef/Documents/UMich/Papers/2015_Fujimoto_activity_Frontiers/Rplot_cDvsD_FL_noscale.pdf", width= 20, height=15, pointsize= 14, useDingbats=FALSE)
-deseq_otu_DNAcDNA_noMLB_SpFL_plot
-#dev.off()
-
-#now run DEseq2 Su Fa PA samples
-deseq_otu_DNAcDNA_noMLB_SuFaPA <- deSEQ_noprune(raw_merged_noMLB_SuFaPA, ~ DNA)
-deseq_otu_DNAcDNA_noMLB_SuFaPA$plotvalue <- log(as.numeric(deseq_otu_DNAcDNA_noMLB_SuFaPA$baseMean),2)
-deseq_otu_DNAcDNA_noMLB_SuFaPA$sig <- as.factor((deseq_otu_DNAcDNA_noMLB_SuFaPA$padj<0.05)*1)
-deseq_otu_DNAcDNA_noMLB_SuFaPA_plot <- plot_deSEQ(deseq_otu_DNAcDNA_noMLB_SuFaPA, "OTU cDNA:DNA Su/Fa PA samples no MLB")
-#pdf(file="/Users/vdenef/Documents/UMich/Papers/2015_Fujimoto_activity_Frontiers/Rplot_cDvsD_FL_noscale.pdf", width= 20, height=15, pointsize= 14, useDingbats=FALSE)
-deseq_otu_DNAcDNA_noMLB_SuFaPA_plot
-#dev.off()
-
-#now run DEseq2 Su Fa FL samples
-deseq_otu_DNAcDNA_noMLB_SuFaFL <- deSEQ_noprune(raw_merged_noMLB_SuFaFL, ~ DNA)
-deseq_otu_DNAcDNA_noMLB_SuFaFL$plotvalue <- log(as.numeric(deseq_otu_DNAcDNA_noMLB_SuFaFL$baseMean),2)
-deseq_otu_DNAcDNA_noMLB_SuFaFL$sig <- as.factor((deseq_otu_DNAcDNA_noMLB_SuFaFL$padj<0.05)*1)
-deseq_otu_DNAcDNA_noMLB_SuFaFL_plot <- plot_deSEQ(deseq_otu_DNAcDNA_noMLB_SuFaFL, "OTU cDNA:DNA Su/Fa FL samples no MLB")
-#pdf(file="/Users/vdenef/Documents/UMich/Papers/2015_Fujimoto_activity_Frontiers/Rplot_cDvsD_FL_noscale.pdf", width= 20, height=15, pointsize= 14, useDingbats=FALSE)
-deseq_otu_DNAcDNA_noMLB_SuFaFL_plot
-#dev.off()
-
-#plot together
-Phylum_temp <- as.character(deseq_otu_DNAcDNA_noMLB_SpPA$Phylum)
-for  (i in 1:length(Phylum_temp)){ 
-  Phylum_temp[i] = paste(Phylum_temp[i],"Sp PA",sep=" ")
-} 
-deseq_otu_DNAcDNA_noMLB_SpPA$Phylum_plot <- Phylum_temp
-
-Phylum_temp <- as.character(deseq_otu_DNAcDNA_noMLB_SpFL$Phylum)
-for  (i in 1:length(Phylum_temp)){ 
-  Phylum_temp[i] = paste(Phylum_temp[i],"Sp FL",sep=" ")
-} 
-deseq_otu_DNAcDNA_noMLB_SpFL$Phylum_plot <- Phylum_temp
-
-Phylum_temp <- as.character(deseq_otu_DNAcDNA_noMLB_SuFaPA$Phylum)
-for  (i in 1:length(Phylum_temp)){ 
-  Phylum_temp[i] = paste(Phylum_temp[i],"SuFa PA",sep=" ")
-} 
-deseq_otu_DNAcDNA_noMLB_SuFaPA$Phylum_plot <- Phylum_temp
-
-Phylum_temp <- as.character(deseq_otu_DNAcDNA_noMLB_SuFaFL$Phylum)
-for  (i in 1:length(Phylum_temp)){ 
-  Phylum_temp[i] = paste(Phylum_temp[i],"SuFa FL",sep=" ")
-} 
-deseq_otu_DNAcDNA_noMLB_SuFaFL$Phylum_plot <- Phylum_temp
-
-deseq_otu_DNAcDNA_SpvsSuFa<-rbind(deseq_otu_DNAcDNA_noMLB_SpFL,deseq_otu_DNAcDNA_noMLB_SpPA,deseq_otu_DNAcDNA_noMLB_SuFaFL,deseq_otu_DNAcDNA_noMLB_SuFaPA)
-deseq_otu_DNAcDNA_SpvsSuFa_plot <- plot_deSEQ_combo(deseq_otu_DNAcDNA_SpvsSuFa, "OTU cDNA:DNA Sp vs SuFa")
-deseq_otu_DNAcDNA_SpvsSuFa_plot
 
 ###############################################################
 ############## END OF LM13_Activity Analyses ##################
