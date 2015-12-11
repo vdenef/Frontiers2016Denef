@@ -199,7 +199,7 @@ plot_deSEQ <- function(deSEQdata, title){
   ggplot(deSEQdata, aes(x=Phylum, y=log2FoldChange, color=Phylum, size=plotvalue, shape=sig)) + 
     geom_point(alpha=0.9) + theme_bw() +  ggtitle(title) +  
     scale_color_manual(values = phylum.colors,name="Phylum") +
-    #    scale_color_manual(name="p-value",  breaks = c("0", "1"), labels = c("p>0.05", "p<0.05"), values = c("0" = "grey", "1"="black")) +
+    #    scale_color_manual(name="p-value",  breaks = c("0", "1"), labels = c("p>1", "p<0.01"), values = c("0" = "grey", "1"="black")) +
     scale_shape_manual(name = "p-value", breaks = c("0", "1"), 
                        labels = c("p>0.05", "p<0.05"),
                        values = c("0" = 21, "1"= 19)) +
