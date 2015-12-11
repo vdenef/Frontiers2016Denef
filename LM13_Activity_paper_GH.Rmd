@@ -102,9 +102,6 @@ physeq_mothur_fwdb = merge_phyloseq(mothurdata_fwdb, SAMPLE)
 
 #setting phyloseq object to work with
 physeq <- physeq_mothur_fwdb
-#physeq <- physeq_mothur_rdp
-#physeq <- physeq_top205
-#physeq <- physeq_rf
 
 ## We need to change the taxonomy names
 #tax_table(physeq) <- cbind(tax_table(physeq),row.names(tax_table(physeq)))
@@ -138,7 +135,7 @@ range_nonscale <- max(sample_sums(noscale_merge)) - min(sample_sums(noscale_merg
 #View(data.frame(sample_data(noscale_merge))) 
 
 #  Fixing the Metadata!
-data_merged <- read.table("/Users/vdenef/Documents/UMich/Papers/2015_Fujimoto_activity_Frontiers/Data_analysis/LMSampleDescription_merged.tsv", sep="\t",header=T,row.names=1,as.is=T)
+data_merged <- read.table("Input_data/LMSampleDescription_merged.tsv", sep="\t",header=T,row.names=1,as.is=T)
 data_merged <- sample_data(data_merged)  # Metadata in our phyloseq object
 scale_otu <- otu_table(noscale_merge)  # OTU table in our phyloseq object
 scale_tax <- tax_table(noscale_merge)  # Taxonomy Table in our phyloseq object
@@ -158,8 +155,6 @@ paste(c("The max sample read count is",maxs))
 
 
 ### Now let's scale our read counts from our MERGED RAW data (using Michelle's function based on McMurdie and Holmes)
-#we will first prune samples with < 15k reads after summing reps
-#raw_merged <- prune_samples(sample_sums(raw_merged)>=15000, raw_merged)
 # now scale the reads
 scaled_merged <- scale_reads(raw_merged,n=min(sample_sums(raw_merged)))
 
@@ -183,20 +178,12 @@ range_scaledmerged <- max(sample_sums(scaled_merged)) - min(sample_sums(scaled_m
 paste(c("The range of sample read counts when merged (summed) and then scaled is",range_scaledmerged))
 
 ###  Time to create our phyloseq object with the merged and scaled sample reads.
-data_final_df <- read.table("/Users/vdenef/Documents/UMich/Papers/2015_Fujimoto_activity_Frontiers/Data_analysis/LMSampleDescription_merged_final.tsv", sep="\t",header=T,row.names=1,as.is=T)
+data_final_df <- read.table("Input_data/LMSampleDescription_merged_final.tsv", sep="\t",header=T,row.names=1,as.is=T)
 data_final_df$names<-row.names(data_final_df)
 data_final <- sample_data(data_final_df)  # Metadata in our phyloseq object
 sc_otu <- otu_table(scaled_merged)  # OTU table in our phyloseq object
 sc_tax <- tax_table(scaled_merged)  # Taxonomy Table in our phyloseq object
 merged_final <- merge_phyloseq(sc_tax, sc_otu, data_final) 
-
-## If want to limit to top taxa, then uncomment the following lines > 0.05% on average
-merged_final_toptaxa <- prune_taxa(taxa_sums(merged_final) > 215, merged_final)
-#merged_final<-merged_final_toptaxa
-physeq_toptaxa = prune_taxa(taxa_names(merged_final_toptaxa),physeq)
-#physeq<-physeq_toptaxa
-raw_merged_toptaxa = prune_taxa(taxa_names(merged_final_toptaxa),raw_merged)
-#raw_merged<-raw_merged_toptaxa
 
 ########## ADD THE PROTEOBACTERIA TO THE PHYLA
 phy <- data.frame(tax_table(merged_final))
@@ -258,13 +245,13 @@ t <- tax_table(as.matrix(phy))
 tax_table(raw_merged) <- t
 ```
 
-```{r beta-diversity DNA and cDNA count data: upgma + PCoA + ADONIS}
+```{r beta-diversity DNA and cDNA count data: upgma + ADONIS + PCoA DNA + PCoA RNA}
 ######################################################################################################
 ##################################  BETA-DIVERSITY ###################################################
 ######################################################################################################
 
 # upgma clustering
-norm_bray <- vegdist(t(otu_table(merged_final))), method = "bray")  # calculates the Bray-Curtis Distances
+norm_bray <- vegdist(t(otu_table(merged_final)), method = "bray")  # calculates the Bray-Curtis Distances
 upgma <- hclust(d = norm_bray,method = "average")
 pdf(file="Figures/Rplot_upgma_bray.pdf", width= 20, height=15, pointsize= 14)
 upgma_bray <- plot(upgma, hang = -1) ; upgma_bray
@@ -311,9 +298,11 @@ bray_axis2_DNA <- paste("PCoA2:",bray_rel_eigen2_percent_DNA,"%")
 bray_axis3_DNA <- paste("PCoA3:",bray_rel_eigen3_percent_DNA,"%")
 bray_axis4_DNA <- paste("PCoA4:",bray_rel_eigen4_percent_DNA,"%")
 
+PCoA_DNA_title <- paste("PCoA DNA data when considering",ntaxa(merged_final),"OTUs")
+
 pdf(file="Figures/Rplot_PCOA12_BC_DNA.pdf", width= 20, height=15, pointsize= 14)
 pcoa_BC12_DNA <- ggplot(bray_pcoa4_DNA, aes(Axis.1, Axis.2 * -1, color = Season, shape = Station, size = Fraction, fill = Depth_Seas)) +
-  xlab(bray_axis1_DNA) + ylab(bray_axis2_DNA) + #ggtitle("Bray-Curtis") +
+  xlab(bray_axis1_DNA) + ylab(bray_axis2_DNA) + ggtitle(PCoA_DNA_title) +
   geom_point(alpha=0.9) + theme_bw() + #ylim(1, -1) + xlim(1, -1) +
   scale_color_manual(name = "season", breaks=c("Sp", "Su",  "Fa"),
                      labels = c("Spring", "Summer",  "Fall"), 
@@ -339,7 +328,7 @@ pcoa_BC12_DNA <- ggplot(bray_pcoa4_DNA, aes(Axis.1, Axis.2 * -1, color = Season,
 
 pdf(file="Figures/Rplot_PCOA34_BC_DNA.pdf", width= 20, height=15, pointsize= 14)
 pcoa_BC34_DNA <- ggplot(bray_pcoa4_DNA, aes(Axis.3, Axis.4 * -1, color = Season, shape = Station, size = Fraction, fill = Depth_Seas)) +
-  xlab(bray_axis3_DNA) + ylab(bray_axis4_DNA) + #ggtitle("Bray-Curtis") +
+  xlab(bray_axis3_DNA) + ylab(bray_axis4_DNA) + ggtitle(PCoA_DNA_title) +
   geom_point(alpha=0.9) + theme_bw() + #ylim(1, -1) + xlim(1, -1) +
   scale_color_manual(name = "season", breaks=c("Sp", "Su",  "Fa"),
                      labels = c("Spring", "Summer",  "Fall"), 
@@ -390,9 +379,11 @@ bray_axis2_RNA <- paste("PCoA2:",bray_rel_eigen2_percent_RNA,"%")
 bray_axis3_RNA <- paste("PCoA3:",bray_rel_eigen3_percent_RNA,"%")
 bray_axis4_RNA <- paste("PCoA4:",bray_rel_eigen4_percent_RNA,"%")
 
+PCoA_RNA_title <- paste("PCoA RNA data when considering",ntaxa(merged_final),"OTUs")
+
 pdf(file="Figures/Rplot_PCOA12_BC_RNA.pdf", width= 20, height=15, pointsize= 14)
 pcoa_BC12_RNA <- ggplot(bray_pcoa4_RNA, aes(Axis.1, Axis.2 * -1, color = Season, shape = Station, size = Fraction, fill = Depth_Seas)) +
-  xlab(bray_axis1_RNA) + ylab(bray_axis2_RNA) + #ggtitle("Bray-Curtis") +
+  xlab(bray_axis1_RNA) + ylab(bray_axis2_RNA) + ggtitle(PCoA_RNA_title) +
   geom_point(alpha=0.9) + theme_bw() + #ylim(1, -1) + xlim(1, -1) +
   scale_color_manual(name = "season", breaks=c("Sp", "Su",  "Fa"),
                      labels = c("Spring", "Summer",  "Fall"), 
@@ -418,7 +409,7 @@ pcoa_BC12_RNA <- ggplot(bray_pcoa4_RNA, aes(Axis.1, Axis.2 * -1, color = Season,
 
 pdf(file="Figures/Rplot_PCOA34_BC_RNA.pdf", width= 20, height=15, pointsize= 14)
 pcoa_BC34_RNA <- ggplot(bray_pcoa4_RNA, aes(Axis.3, Axis.4 * -1, color = Season, shape = Station, size = Fraction, fill = Depth_Seas)) +
-  xlab(bray_axis3_RNA) + ylab(bray_axis4_RNA) + #ggtitle("Bray-Curtis") +
+  xlab(bray_axis3_RNA) + ylab(bray_axis4_RNA) + ggtitle(PCoA_RNA_title) +
   geom_point(alpha=0.9) + theme_bw() + #ylim(1, -1) + xlim(1, -1) +
   scale_color_manual(name = "season", breaks=c("Sp", "Su",  "Fa"),
                      labels = c("Spring", "Summer",  "Fall"), 
@@ -446,125 +437,900 @@ pcoa_BC34_RNA <- ggplot(bray_pcoa4_RNA, aes(Axis.3, Axis.4 * -1, color = Season,
 ############TO BE ADDED
 ```
 
-```{r barplots}
-###barplots
-phylum_relab<-taxglom_and_melt(merged_final,"Phylum",0.01)
-#View(data.frame(phylum_relab))
+```{r top 200 taxa beta-diversity DNA and cDNA count data: upgma + ADONIS + PCoA DNA + PCoA RNA}
+######################################################################################################
+##################################  BETA-DIVERSITY ###################################################
+######################################################################################################
+## If want to limit to top taxa, then uncomment the following lines > 0.05 % on average
+merged_final_toptaxa <- prune_taxa(taxa_sums(merged_final) > 215, merged_final)
+physeq_toptaxa = prune_taxa(taxa_names(merged_final_toptaxa),physeq)
+raw_merged_toptaxa = prune_taxa(taxa_names(merged_final_toptaxa),raw_merged)
 
-# Calculate the mean relative abundance based on Fraction + Stat_seas for each manually assigned group 
-for(i in 1:length(phylum_relab$Station)){
-  phylum_relab$Stat_seas[i]<-paste(as.character(phylum_relab$Station[i]),
-                                  as.character(phylum_relab$Season[i]))}
+########## ADD THE PROTEOBACTERIA TO THE PHYLA
+phy <- data.frame(tax_table(merged_final_toptaxa))
+Phylum <- as.character(phy$Phylum)
+Class <- as.character(phy$Class)
 
-StatSeasFrac_phylum_stats <- ddply(phylum_relab, c("Stat_seas","Fraction", "Phylum"), summarise, 
-                                N = length(Abundance),
-                                mean_abundance = mean(Abundance),
-                                sd   = sd(Abundance),
-                                se   = sd / sqrt(N))
+for  (i in 1:length(Phylum)){ 
+  if (Phylum[i] == "Proteobacteria"){
+    if (Class[i] == "unclassified"){
+      Phylum[i] <- Phylum[i]       
+    } else {
+      Phylum[i] <- Class[i]
+    }
+  } 
+}
 
-StatSeasFrac_phylum_stats$Stat_seas <- factor(StatSeasFrac_phylum_stats$Stat_seas,levels = c("MLB Sp", "MLB Su", "MLB Fa", "MM15 Sp", "MM15 Su", "MM15 Fa", "MM110 Sp", "MM110 Su", "MM110 Fa"))   
 
-StatSeasFrac_phylum_stats$Stat_seas = with(StatSeasFrac_phylum_stats, factor(Stat_seas, levels = levels(Stat_seas)))
+phy$Phylum <- Phylum
+t <- tax_table(as.matrix(phy))
 
-StatSeasFrac_phylum_stats$Phylum <- factor(StatSeasFrac_phylum_stats$Phylum,levels = c("Bacteroidetes", "Betaproteobacteria", "Actinobacteria", "Alphaproteobacteria","Cyanobacteria", "Verrucomicrobia", "Gammaproteobacteria","Proteobacteria",  "Planctomycetes", "Chloroflexi",  "Deltaproteobacteria","Armatimonadetes",
-                                                 "Nitropsirae", "Chlorobi", "Firmicutes", "Acidobacteria", "Spirochaetae", "Candidate_division_OD1",
-                                               "NPL-UPA2", "Deinococcus-Thermus", "Candidate_division_OP3", "TM6", "Chlamydiae", "Epsilonproteobacteria", "TA18", "Fibrobacteres", "Candidate_division_SR1", 
-                                               "Candidate_division_BRC1", "BD1-5", "Gemmatimonadetes", "Fusobacteria", "Candidate_division_WS3", "Tenericutes", "Elusimicrobia", "WCHB1-60", "Deferribacteres", 
-                                               "Candidate_division_TM7", "Candidate_division_OP8", "SPOTSOCT00m83", "Thermotogae", "Candidate_division_OP11", "Dictyoglomi", "Unclassified"))
+tax_table(merged_final_toptaxa) <- t
 
-StatSeasFrac_phylum_stats$Phylum = with(StatSeasFrac_phylum_stats, factor(Phylum, levels = levels(Phylum))) 
+#View(data.frame(t))
 
-abund_only_by_phylum <- ddply(StatSeasFrac_phylum_stats, c("Phylum"), summarise, 
-                              N = length(mean_abundance),
-                              phylum_mean = mean(mean_abundance))
+#same for raw_merged
+phy <- data.frame(tax_table(raw_merged_toptaxa))
+Phylum <- as.character(phy$Phylum)
+Class <- as.character(phy$Class)
 
-##jpeg(filename="Abundance_top15.jpeg", width= 28, height=25, units= "cm", pointsize= 10, res=250)
-ab_plot <- ggplot(StatSeasFrac_phylum_stats, aes(y=mean_abundance , x=Phylum, fill=Phylum)) + #coord_cartesian(xlim = c(0, 30)) + 
-  guides(fill = guide_legend(reverse=TRUE)) + ggtitle("") + 
-  geom_bar(stat="identity", position=position_dodge()) + #theme_classic() +
-  geom_bar(stat="identity", position=position_dodge(), colour = "black", show_guide = FALSE) +
-  facet_wrap(~ Stat_seas+Fraction, ncol = 6) + xlab("Manually assigned groups") +
-  scale_fill_manual(values = group.colors,name="Group") + 
-  geom_errorbar(aes(ymin = mean_abundance -se, ymax = mean_abundance +se), width = 0.25, color = "black") + 
-  ylab("Mean Percent Relative Abundance (%)") + coord_flip() + theme_bw() + 
-  theme(axis.title.x = element_text(face="bold", size=16),
-        axis.text.x = element_text(colour = "black", size=14),
-        axis.text.y = element_text(colour = "black", size=14),
+for  (i in 1:length(Phylum)){ 
+  if (Phylum[i] == "Proteobacteria"){
+    if (Class[i] == "unclassified"){
+      Phylum[i] <- Phylum[i]       
+    } else {
+      Phylum[i] <- Class[i]
+    }
+  } 
+}
+
+for  (i in 1:length(Phylum)){ 
+  if (Phylum[i] == "Bacteroidetes"){
+    if (Class[i] == "unclassified"){
+      Phylum[i] <- Phylum[i] 
+    } else {
+      Phylum[i] <- Class[i]
+    }
+  } 
+}
+
+for  (i in 1:length(Phylum)){ 
+  if (Phylum[i] == "Sphingobacteriia"){
+      Phylum[i] <- "Sphingobacteria" 
+    }
+  } 
+
+phy$Phylum <- Phylum
+t <- tax_table(as.matrix(phy))
+
+tax_table(raw_merged_toptaxa) <- t
+
+# upgma clustering
+norm_bray_toptaxa <- vegdist(t(otu_table(merged_final_toptaxa)), method = "bray")  # calculates the Bray-Curtis Distances
+upgma_toptaxa <- hclust(d = norm_bray_toptaxa,method = "average")
+pdf(file="Figures/Rplot_upgma_bray_toptaxa.pdf", width= 20, height=15, pointsize= 14)
+upgma_bray_toptaxa <- plot(upgma, hang = -1) ; upgma_bray_toptaxa
+  dev.off()
+
+#Let's run ADONIS using Michelle's function
+phyloseq_to_adonis(merged_final_toptaxa, distmat = norm_bray, dist = "bray","Fraction")
+phyloseq_to_adonis(merged_final_toptaxa, distmat = norm_bray, dist = "bray","Season")
+phyloseq_to_adonis(merged_final_toptaxa, distmat = norm_bray, dist = "bray","Station")
+phyloseq_to_adonis(merged_final_toptaxa, distmat = norm_bray, dist = "bray","DNA")
+phyloseq_to_adonis(merged_final_toptaxa, distmat = norm_bray, dist = "bray","Depth_C")
+phyloseq_to_adonis(merged_final_toptaxa, distmat = norm_bray, dist = "bray","DayNight")
+phyloseq_to_adonis(merged_final_toptaxa, distmat = norm_bray, dist = "bray","Lake")
+formula<-c("Fraction","Season","Lake","Station","Depth_C","DNA","DayNight")
+phyloseq_to_adonis(merged_final_toptaxa, distmat = norm_bray, dist = "bray",formula)
+
+#Partial Mantel test taking variation in DNA in account 
+############TO BE ADDED
+
+## create PCoA plot for RNA and DNA seperately
+# Betadiv pcoa Bray-Curtis DNA only
+merged_final_toptaxa_DNA <- subset_samples(merged_final_toptaxa,DNA == "D")
+norm_bray_toptaxa_DNA <- vegdist(t(otu_table(merged_final_toptaxa_DNA)), method = "bray")  # calculates the Bray-Curtis Distances
+bray_pcoa_toptaxa_DNA <- pcoa(norm_bray_toptaxa_DNA)
+bray_pcoa2_toptaxa_DNA <- bray_pcoa_toptaxa_DNA$vectors
+bray_pcoa3_toptaxa_DNA <- data.frame(bray_pcoa2_toptaxa_DNA[, 1:4])
+bray_pcoa3_toptaxa_DNA$names <- row.names(bray_pcoa3_toptaxa_DNA)
+bray_pcoa4_toptaxa_DNA <- merge(bray_pcoa3_toptaxa_DNA,data_final_df,by="names")
+for(i in 1:length(bray_pcoa4_toptaxa_DNA$Season)){
+  bray_pcoa4_toptaxa_DNA$Depth_Seas[i]<-paste(as.character(bray_pcoa4_toptaxa_DNA$Depth_C[i]),
+                                  as.character(bray_pcoa4_toptaxa_DNA$Season[i]))}
+bray_values_toptaxa_DNA <- bray_pcoa_toptaxa_DNA$values
+bray_rel_eigens_toptaxa_DNA <- bray_values_toptaxa_DNA$Relative_eig
+bray_rel_eigen1_toptaxa_DNA <- bray_rel_eigens_toptaxa_DNA[1]
+bray_rel_eigen1_percent_toptaxa_DNA <- round(bray_rel_eigen1_toptaxa_DNA * 100, digits = 1)
+bray_rel_eigen2_toptaxa_DNA <- bray_rel_eigens_toptaxa_DNA[2]
+bray_rel_eigen2_percent_toptaxa_DNA <- round(bray_rel_eigen2_toptaxa_DNA * 100, digits = 1)
+bray_rel_eigen3_toptaxa_DNA <- bray_rel_eigens_toptaxa_DNA[3]
+bray_rel_eigen3_percent_toptaxa_DNA <- round(bray_rel_eigen3_toptaxa_DNA * 100, digits = 1)
+bray_rel_eigen4_toptaxa_DNA <- bray_rel_eigens_toptaxa_DNA[4]
+bray_rel_eigen4_percent_toptaxa_DNA <- round(bray_rel_eigen4_toptaxa_DNA * 100, digits = 1)
+bray_axis1_toptaxa_DNA <- paste("PCoA1:",bray_rel_eigen1_percent_toptaxa_DNA,"%")
+bray_axis2_toptaxa_DNA <- paste("PCoA2:",bray_rel_eigen2_percent_toptaxa_DNA,"%")
+bray_axis3_toptaxa_DNA <- paste("PCoA3:",bray_rel_eigen3_percent_toptaxa_DNA,"%")
+bray_axis4_toptaxa_DNA <- paste("PCoA4:",bray_rel_eigen4_percent_toptaxa_DNA,"%")
+
+PCoA_DNA_toptaxa_title <- paste("PCoA DNA data when considering",ntaxa(merged_final_toptaxa),"OTUs")
+
+pdf(file="Figures/Rplot_PCOA12_BC_toptaxa_DNA.pdf", width= 20, height=15, pointsize= 14)
+pcoa_BC12_toptaxa_DNA <- ggplot(bray_pcoa4_toptaxa_DNA, aes(Axis.1, Axis.2 * -1, color = Season, shape = Station, size = Fraction, fill = Depth_Seas)) +
+  xlab(bray_axis1_toptaxa_DNA) + ylab(bray_axis2_toptaxa_DNA) + ggtitle(PCoA_DNA_toptaxa_title) +
+  geom_point(alpha=0.9) + theme_bw() + #ylim(1, -1) + xlim(1, -1) +
+  scale_color_manual(name = "season", breaks=c("Sp", "Su",  "Fa"),
+                     labels = c("Spring", "Summer",  "Fall"), 
+                     values = c("Fa" = "mediumblue", "Sp" = "darkgreen", "Su" = "red")) +
+  scale_shape_manual(name = "station", breaks = c("MLB", "MM15",  "MM110"), 
+                     labels = c("MLB", "M15",  "M110"),
+                     values = c("MLB" = 21, "MM15" = 22, "MM110" = 24)) +
+  scale_size_manual(name = "fraction", breaks = c("E", "B"), 
+                     labels = c("Particle", "Free"),
+                     values = c("B" = 5, "E" = 10)) +
+  scale_fill_manual(name = "depth", breaks = c("D Sp", "D Su", "D Fa", "M Su", "S Sp", "S Su", "S Fa"), 
+                     labels = c("Deep","Deep","Deep", "Chla max", "Surface", "Surface", "Surface"),
+                     values = c("D Fa" = "mediumblue", "D Sp" = "darkgreen", "D Su" = "red", "M Su" = "orange", "S Sp" = "white", "S Su" = "white", "S Fa" = "white")) +
+  theme(axis.text.x = element_text(colour="black", vjust=0.5, size=14), 
+        axis.text.y = element_text(colour="black", vjust=0.5, size=14),
+        axis.title.x = element_text(face="bold", size=16),
         axis.title.y = element_text(face="bold", size=16),
-        plot.title = element_text(face="bold", size = 20),
-        strip.text.x = element_text(size=12),
-        strip.text.y = element_text(size=12),
         legend.title = element_text(size=12, face="bold"),
         legend.text = element_text(size = 12),
-        strip.background = element_rect(fill="grey77", color = NA),
-        legend.position="right"); ab_plot
-#dev.off()
+        ###LEGEND TOP RIGHT CORNER
+        legend.position = "right"); pcoa_BC12_toptaxa_DNA
+  dev.off()
 
-# Calculate the mean relative abundance based on Fraction + Stat_seas + cDNA/DNA for each group 
-for(i in 1:length(phylum_relab$Station)){
-  phylum_relab$Stat_frac[i]<-paste(as.character(phylum_relab$Station[i]),
-                                  as.character(phylum_relab$Fraction[i]))}
-
-StatSeasFracDNA_phylum_stats <- ddply(phylum_relab, c("Stat_frac","Season", "Phylum", "DNA"), summarise, 
-                                N = length(Abundance),
-                                mean_abundance = mean(Abundance),
-                                sd   = sd(Abundance),
-                                se   = sd / sqrt(N))
-
-StatSeasFracDNA_phylum_stats$Stat_frac <- factor(StatSeasFracDNA_phylum_stats$Stat_frac,levels = c("MLB B", "MLB E", "MM15 B", "MM15 E", "MM110 B", "MM110 E"))   
-StatSeasFracDNA_phylum_stats$Stat_frac = with(StatSeasFracDNA_phylum_stats, factor(Stat_frac, levels = levels(Stat_frac)))
-
-StatSeasFracDNA_phylum_stats$Season <- factor(StatSeasFracDNA_phylum_stats$Season,levels = c("Sp", "Su", "Fa"))
-StatSeasFracDNA_phylum_stats$Season = with(StatSeasFracDNA_phylum_stats, factor(Season, levels = levels(Season)))
-
-StatSeasFracDNA_phylum_stats$DNA <- factor(StatSeasFracDNA_phylum_stats$DNA,levels = c("D", "cD"))
-StatSeasFracDNA_phylum_stats$DNA = with(StatSeasFracDNA_phylum_stats, factor(DNA, levels = levels(DNA)))
-
-StatSeasFracDNA_phylum_stats$Phylum <- factor(StatSeasFracDNA_phylum_stats$Phylum,levels = c("Bacteroidetes", "Betaproteobacteria", "Actinobacteria", "Alphaproteobacteria","Cyanobacteria", "Verrucomicrobia", "Gammaproteobacteria","Proteobacteria",  "Planctomycetes", "Chloroflexi",  "Deltaproteobacteria","Armatimonadetes",
-                                                 "Nitropsirae", "Chlorobi", "Firmicutes", "Acidobacteria", "Spirochaetae", "Candidate_division_OD1",
-                                               "NPL-UPA2", "Deinococcus-Thermus", "Candidate_division_OP3", "TM6", "Chlamydiae", "Epsilonproteobacteria", "TA18", "Fibrobacteres", "Candidate_division_SR1", 
-                                               "Candidate_division_BRC1", "BD1-5", "Gemmatimonadetes", "Fusobacteria", "Candidate_division_WS3", "Tenericutes", "Elusimicrobia", "WCHB1-60", "Deferribacteres", 
-                                               "Candidate_division_TM7", "Candidate_division_OP8", "SPOTSOCT00m83", "Thermotogae", "Candidate_division_OP11", "Dictyoglomi", "Unclassified"))
-
-StatSeasFracDNA_phylum_stats$Phylum = with(StatSeasFracDNA_phylum_stats, factor(Phylum, levels = levels(Phylum))) 
-
-abund_only_by_phylum <- ddply(StatSeasFracDNA_phylum_stats, c("Phylum"), summarise, 
-                              N = length(mean_abundance),
-                              phylum_mean = mean(mean_abundance))
-
-pdf(file="/Users/vdenef/Documents/UMich/Papers/2015_Fujimoto_activity_Frontiers/Rplot_relab_StatSeasFracDNA_RDP.pdf", width= 20, height=15, pointsize= 14)
-ab_plot <- ggplot(StatSeasFracDNA_phylum_stats, aes(y=mean_abundance , x=Phylum, fill=Phylum)) + #coord_cartesian(xlim = c(0, 30)) + 
-  guides(fill = guide_legend(reverse=TRUE)) + ggtitle("") + 
-  geom_bar(stat="identity", position=position_dodge()) + #theme_classic() +
-  geom_bar(stat="identity", position=position_dodge(), colour = "black", show_guide = FALSE) +
-  facet_wrap(~ Stat_frac+Season+DNA, ncol = 12) + xlab("Phylum") +
-  scale_fill_manual(values = group.colors,name="Group") + 
-  geom_errorbar(aes(ymin = mean_abundance -se, ymax = mean_abundance +se), width = 0.25, color = "black") + 
-  ylab("Mean Percent Relative Abundance (%)") + coord_flip() + theme_bw() + 
-  theme(axis.title.x = element_text(face="bold", size=16),
-        axis.text.x = element_text(colour = "black", size=14),
-        axis.text.y = element_text(colour = "black", size=14),
+pdf(file="Figures/Rplot_PCOA34_BC_toptaxa_DNA.pdf", width= 20, height=15, pointsize= 14)
+pcoa_BC34_toptaxa_DNA <- ggplot(bray_pcoa4_toptaxa_DNA, aes(Axis.3, Axis.4 * -1, color = Season, shape = Station, size = Fraction, fill = Depth_Seas)) +
+  xlab(bray_axis3_toptaxa_DNA) + ylab(bray_axis4_toptaxa_DNA) + ggtitle(PCoA_DNA_toptaxa_title) +
+  geom_point(alpha=0.9) + theme_bw() + #ylim(1, -1) + xlim(1, -1) +
+  scale_color_manual(name = "season", breaks=c("Sp", "Su",  "Fa"),
+                     labels = c("Spring", "Summer",  "Fall"), 
+                     values = c("Fa" = "mediumblue", "Sp" = "darkgreen", "Su" = "red")) +
+  scale_shape_manual(name = "station", breaks = c("MLB", "MM15",  "MM110"), 
+                     labels = c("MLB", "M15",  "M110"),
+                     values = c("MLB" = 21, "MM15" = 22, "MM110" = 24)) +
+  scale_size_manual(name = "fraction", breaks = c("E", "B"), 
+                     labels = c("Particle", "Free"),
+                     values = c("B" = 5, "E" = 10)) +
+  scale_fill_manual(name = "depth", breaks = c("D Sp", "D Su", "D Fa", "M Su", "S Sp", "S Su", "S Fa"), 
+                     labels = c("Deep","Deep","Deep", "Chla max", "Surface", "Surface", "Surface"),
+                     values = c("D Fa" = "mediumblue", "D Sp" = "darkgreen", "D Su" = "red", "M Su" = "orange", "S Sp" = "white", "S Su" = "white", "S Fa" = "white")) +
+  theme(axis.text.x = element_text(colour="black", vjust=0.5, size=14), 
+        axis.text.y = element_text(colour="black", vjust=0.5, size=14),
+        axis.title.x = element_text(face="bold", size=16),
         axis.title.y = element_text(face="bold", size=16),
-        plot.title = element_text(face="bold", size = 20),
-        strip.text.x = element_text(size=12),
-        strip.text.y = element_text(size=12),
         legend.title = element_text(size=12, face="bold"),
         legend.text = element_text(size = 12),
-        strip.background = element_rect(fill="grey77", color = NA),
-        legend.position="right"); ab_plot
+        ###LEGEND TOP RIGHT CORNER
+        legend.position = "right"); pcoa_BC34_toptaxa_DNA
+  dev.off()
+
+
+# Betadiv pcoa Bray-Curtis RNA only
+merged_final_toptaxa_RNA <- subset_samples(merged_final_toptaxa,DNA == "cD")
+norm_bray_toptaxa_RNA <- vegdist(t(otu_table(merged_final_toptaxa_RNA)), method = "bray")  # calculates the Bray-Curtis Distances
+bray_pcoa_toptaxa_RNA <- pcoa(norm_bray_toptaxa_RNA)
+bray_pcoa2_toptaxa_RNA <- bray_pcoa_toptaxa_RNA$vectors
+bray_pcoa3_toptaxa_RNA <- data.frame(bray_pcoa2_toptaxa_RNA[, 1:4])
+bray_pcoa3_toptaxa_RNA$names <- row.names(bray_pcoa3_toptaxa_RNA)
+bray_pcoa4_toptaxa_RNA <- merge(bray_pcoa3_toptaxa_RNA,data_final_df,by="names")
+for(i in 1:length(bray_pcoa4_toptaxa_RNA$Season)){
+  bray_pcoa4_toptaxa_RNA$Depth_Seas[i]<-paste(as.character(bray_pcoa4_toptaxa_RNA$Depth_C[i]),
+                                  as.character(bray_pcoa4_toptaxa_RNA$Season[i]))}
+bray_values_toptaxa_RNA <- bray_pcoa_toptaxa_RNA$values
+bray_rel_eigens_toptaxa_RNA <- bray_values_toptaxa_RNA$Relative_eig
+bray_rel_eigen1_toptaxa_RNA <- bray_rel_eigens_toptaxa_RNA[1]
+bray_rel_eigen1_percent_toptaxa_RNA <- round(bray_rel_eigen1_toptaxa_RNA * 100, digits = 1)
+bray_rel_eigen2_toptaxa_RNA <- bray_rel_eigens_toptaxa_RNA[2]
+bray_rel_eigen2_percent_toptaxa_RNA <- round(bray_rel_eigen2_toptaxa_RNA * 100, digits = 1)
+bray_rel_eigen3_toptaxa_RNA <- bray_rel_eigens_toptaxa_RNA[3]
+bray_rel_eigen3_percent_toptaxa_RNA <- round(bray_rel_eigen3_toptaxa_RNA * 100, digits = 1)
+bray_rel_eigen4_toptaxa_RNA <- bray_rel_eigens_toptaxa_RNA[4]
+bray_rel_eigen4_percent_toptaxa_RNA <- round(bray_rel_eigen4_toptaxa_RNA * 100, digits = 1)
+bray_axis1_toptaxa_RNA <- paste("PCoA1:",bray_rel_eigen1_percent_toptaxa_RNA,"%")
+bray_axis2_toptaxa_RNA <- paste("PCoA2:",bray_rel_eigen2_percent_toptaxa_RNA,"%")
+bray_axis3_toptaxa_RNA <- paste("PCoA3:",bray_rel_eigen3_percent_toptaxa_RNA,"%")
+bray_axis4_toptaxa_RNA <- paste("PCoA4:",bray_rel_eigen4_percent_toptaxa_RNA,"%")
+
+PCoA_RNA_toptaxa_title <- paste("PCoA RNA data when considering",ntaxa(merged_final_toptaxa),"OTUs")
+
+pdf(file="Figures/Rplot_PCOA12_BC_toptaxa_RNA.pdf", width= 20, height=15, pointsize= 14)
+pcoa_BC12_toptaxa_RNA <- ggplot(bray_pcoa4_toptaxa_RNA, aes(Axis.1, Axis.2 * -1, color = Season, shape = Station, size = Fraction, fill = Depth_Seas)) +
+  xlab(bray_axis1_toptaxa_RNA) + ylab(bray_axis2_toptaxa_RNA) + ggtitle(PCoA_RNA_toptaxa_title) +
+  geom_point(alpha=0.9) + theme_bw() + #ylim(1, -1) + xlim(1, -1) +
+  scale_color_manual(name = "season", breaks=c("Sp", "Su",  "Fa"),
+                     labels = c("Spring", "Summer",  "Fall"), 
+                     values = c("Fa" = "mediumblue", "Sp" = "darkgreen", "Su" = "red")) +
+  scale_shape_manual(name = "station", breaks = c("MLB", "MM15",  "MM110"), 
+                     labels = c("MLB", "M15",  "M110"),
+                     values = c("MLB" = 21, "MM15" = 22, "MM110" = 24)) +
+  scale_size_manual(name = "fraction", breaks = c("E", "B"), 
+                     labels = c("Particle", "Free"),
+                     values = c("B" = 5, "E" = 10)) +
+  scale_fill_manual(name = "depth", breaks = c("D Sp", "D Su", "D Fa", "M Su", "S Sp", "S Su", "S Fa"), 
+                     labels = c("Deep","Deep","Deep", "Chla max", "Surface", "Surface", "Surface"),
+                     values = c("D Fa" = "mediumblue", "D Sp" = "darkgreen", "D Su" = "red", "M Su" = "orange", "S Sp" = "white", "S Su" = "white", "S Fa" = "white")) +
+  theme(axis.text.x = element_text(colour="black", vjust=0.5, size=14), 
+        axis.text.y = element_text(colour="black", vjust=0.5, size=14),
+        axis.title.x = element_text(face="bold", size=16),
+        axis.title.y = element_text(face="bold", size=16),
+        legend.title = element_text(size=12, face="bold"),
+        legend.text = element_text(size = 12),
+        ###LEGEND TOP RIGHT CORNER
+        legend.position = "right"); pcoa_BC12_toptaxa_RNA
+  dev.off()
+
+pdf(file="Figures/Rplot_PCOA34_BC_toptaxa_RNA.pdf", width= 20, height=15, pointsize= 14)
+pcoa_BC34_toptaxa_RNA <- ggplot(bray_pcoa4_toptaxa_RNA, aes(Axis.3, Axis.4 * -1, color = Season, shape = Station, size = Fraction, fill = Depth_Seas)) +
+  xlab(bray_axis3_toptaxa_RNA) + ylab(bray_axis4_toptaxa_RNA) + ggtitle(PCoA_RNA_toptaxa_title) +
+  geom_point(alpha=0.9) + theme_bw() + #ylim(1, -1) + xlim(1, -1) +
+  scale_color_manual(name = "season", breaks=c("Sp", "Su",  "Fa"),
+                     labels = c("Spring", "Summer",  "Fall"), 
+                     values = c("Fa" = "mediumblue", "Sp" = "darkgreen", "Su" = "red")) +
+  scale_shape_manual(name = "station", breaks = c("MLB", "MM15",  "MM110"), 
+                     labels = c("MLB", "M15",  "M110"),
+                     values = c("MLB" = 21, "MM15" = 22, "MM110" = 24)) +
+  scale_size_manual(name = "fraction", breaks = c("E", "B"), 
+                     labels = c("Particle", "Free"),
+                     values = c("B" = 5, "E" = 10)) +
+  scale_fill_manual(name = "depth", breaks = c("D Sp", "D Su", "D Fa", "M Su", "S Sp", "S Su", "S Fa"), 
+                     labels = c("Deep","Deep","Deep", "Chla max", "Surface", "Surface", "Surface"),
+                     values = c("D Fa" = "mediumblue", "D Sp" = "darkgreen", "D Su" = "red", "M Su" = "orange", "S Sp" = "white", "S Su" = "white", "S Fa" = "white")) +
+  theme(axis.text.x = element_text(colour="black", vjust=0.5, size=14), 
+        axis.text.y = element_text(colour="black", vjust=0.5, size=14),
+        axis.title.x = element_text(face="bold", size=16),
+        axis.title.y = element_text(face="bold", size=16),
+        legend.title = element_text(size=12, face="bold"),
+        legend.text = element_text(size = 12),
+        ###LEGEND TOP RIGHT CORNER
+        legend.position = "right"); pcoa_BC34_toptaxa_RNA
+  dev.off()
+
+# Procrustes analysis
+############TO BE ADDED
+
+```
+
+```{r RNA vs DNA overlap}
+########## cDNA vs DNA overlap of OTUs ########## 
+
+# first make a dataframe that has sample name and list of comma-delimited otus in it
+temp <- otu_table(merged_final)
+otu_list <- vector(mode="character", length=length(colnames(temp)))
+for(i in 1:length(colnames(temp))){
+  otu_list[i]<-as.character(colnames(temp)[i])}
+otu_list_df <- data.frame(otu_list,otu_list,stringsAsFactors=FALSE)
+colnames(otu_list_df) <- c("sample","otu_list")
+for(i in 1:length(rownames(otu_list_df))){
+  otu_list_df[i,2]<-toString(rownames(temp)[temp[,otu_list_df[i,1]] > 0],sep=",")}
+
+## now make dataframe that adds group to compare in column 1, samples to compare in column 2 and 3, their corresponding otus in 4 and 5, then add overlap, unique cDNA, unique DNA in column 6, 7, and 8
+#create new phyloseq object to manipulate
+temp_data <- sample_data(merged_final)
+temp_otu <- otu_table(merged_final)
+temp_taxa <- tax_table(merged_final)
+temp_data$Sample = rownames(temp_data)
+temp_phy <- merge_phyloseq(temp_otu, temp_taxa, temp_data)
+
+#create new dataframe to store otu overlap data (cDNA vs DNA)
+compare_df<-data.frame(unique(sample_data(subset_samples(temp_phy,Sample != "Su.EcD.110.DN"))$Group_cDvsD),rownames(sample_data(subset_samples(subset_samples(temp_phy, DNA == "cD"), Sample != "Su.EcD.110.DN"))),rownames(sample_data(subset_samples(temp_phy, DNA == "D"))),sample_data(subset_samples(temp_phy, DNA == "D"))$Season,sample_data(subset_samples(temp_phy, DNA == "D"))$Fraction,sample_data(subset_samples(temp_phy, DNA == "D"))$Station,sample_data(subset_samples(temp_phy, DNA == "D"))$Depth_C)
+colnames(compare_df) <- c("group","cDNA","DNA","Season","Fraction","Station","Depth_C")
+colnames(otu_list_df) <- c("cDNA","otu_cDNA")
+compare_df <- merge(compare_df,otu_list_df,by="cDNA")
+colnames(otu_list_df) <- c("DNA","otu_DNA")
+compare_df <- merge(compare_df,otu_list_df,by="DNA")
+colnames(otu_list_df) <- c("sample","otu_list")
+for(i in 1:length(rownames(compare_df))){
+  compare_df[i,10]<-length(intersect(unlist(strsplit(compare_df[i,]$otu_cDNA,split=", ")), unlist(strsplit(compare_df[i,]$otu_DNA,split=", "))))
+  compare_df[i,11] <- length(setdiff(unlist(strsplit(compare_df[i,]$otu_cDNA,split=", ")), unlist(strsplit(compare_df[i,]$otu_DNA,split=", "))))
+  compare_df[i,12] <- length(setdiff(unlist(strsplit(compare_df[i,]$otu_DNA,split=", ")), unlist(strsplit(compare_df[i,]$otu_cDNA,split=", "))))
+  compare_df[i,13] <- compare_df[i,10]/sum(compare_df[i,10],compare_df[i,11],compare_df[i,12])
+  compare_df[i,14] <- compare_df[i,11]/sum(compare_df[i,10],compare_df[i,11],compare_df[i,12])
+  compare_df[i,15] <- compare_df[i,12]/sum(compare_df[i,10],compare_df[i,11],compare_df[i,12])
+}
+colnames(compare_df) <- c("DNA","cDNA","group","Season","Fraction","Station","Depth_C","otu_cDNA","otu_DNA","Shared","Uniq_cDNA","Uniq_DNA","Shared_rel","Uniq_cDNA_rel","Uniq_DNA_rel")
+
+########## rep1 vs rep2 overlap of OTUs ########## 
+
+# first make a dataframe that has sample name and list of comma-delimited otus in it
+# we will do OTU overlap analysis only for OTUs witheld for cDNA-DNA overlap analysis
+physeq_reps = prune_taxa(taxa_names(merged_final),physeq)
+rep_temp <- otu_table(physeq_reps)
+rep_otu_list <- vector(mode="character", length=length(colnames(rep_temp)))
+for(i in 1:length(colnames(rep_temp))){
+  rep_otu_list[i]<-as.character(colnames(rep_temp)[i])}
+rep_otu_list_df <- data.frame(rep_otu_list,rep_otu_list,stringsAsFactors=FALSE)
+colnames(rep_otu_list_df) <- c("sample","otu_list")
+for(i in 1:length(rownames(rep_otu_list_df))){
+  rep_otu_list_df[i,2]<-toString(rownames(rep_temp)[rep_temp[,rep_otu_list_df[i,1]] > 0],sep=",")}
+
+## now make dataframe that adds group to compare in column 1, samples to compare in column 2 and 3, their corresponding otus in 4 and 5, then add overlap, unique rep1, unique rep2 in column 6, 7, and 8
+#create new phyloseq object to manipulate
+rep_temp_data <- sample_data(physeq_reps)
+rep_temp_otu <- otu_table(physeq_reps)
+rep_temp_taxa <- tax_table(physeq_reps)
+rep_temp_data$Sample = rownames(rep_temp_data)
+rep_temp_phy <- merge_phyloseq(rep_temp_otu, rep_temp_taxa, rep_temp_data)
+rep_group_sums <- as.matrix(table(sample_data(rep_temp_phy)[ ,"Group"]))[,1]
+reps <- as.data.frame(rep_group_sums)
+reps$Group <- rownames(reps)
+rep_temp_data <- data.frame(rep_temp_data)
+rep_temp_data <-  merge(rep_temp_data,reps,by="Group")
+rownames(rep_temp_data) = rep_temp_data$Sample
+rep_temp_data = sample_data(rep_temp_data)
+rep_temp_phy <- merge_phyloseq(rep_temp_otu, rep_temp_taxa, rep_temp_data)
+
+#create new dataframe to store otu overlap data (cDNA vs DNA)
+rep_compare_df<-data.frame(unique(sample_data(subset_samples(rep_temp_phy,rep_group_sums != "1"))$Group),rownames(sample_data(subset_samples(subset_samples(rep_temp_phy, Replicates == "2"), rep_group_sums != "1"))),rownames(sample_data(subset_samples(subset_samples(rep_temp_phy, Replicates == "1"), rep_group_sums != "1"))),sample_data(subset_samples(subset_samples(rep_temp_phy,rep_group_sums != "1"),Replicates == "2"))$Season,sample_data(subset_samples(subset_samples(rep_temp_phy,rep_group_sums != "1"),Replicates == "2"))$Fraction,sample_data(subset_samples(subset_samples(rep_temp_phy,rep_group_sums != "1"),Replicates == "2"))$Station,sample_data(subset_samples(subset_samples(rep_temp_phy,rep_group_sums != "1"),Replicates == "2"))$Depth_C)
+colnames(rep_compare_df) <- c("group","rep2","rep1","Season","Fraction","Station","Depth_C")
+colnames(rep_otu_list_df) <- c("rep2","otu_rep2")
+rep_compare_df <- merge(rep_compare_df,rep_otu_list_df,by="rep2")
+colnames(rep_otu_list_df) <- c("rep1","otu_rep1")
+rep_compare_df <- merge(rep_compare_df,rep_otu_list_df,by="rep1")
+colnames(rep_otu_list_df) <- c("sample","otu_list")
+for(i in 1:length(rownames(rep_compare_df))){
+  rep_compare_df[i,10]<-length(intersect(unlist(strsplit(rep_compare_df[i,]$otu_rep2,split=", ")), unlist(strsplit(rep_compare_df[i,]$otu_rep1,split=", "))))
+  rep_compare_df[i,11] <- length(setdiff(unlist(strsplit(rep_compare_df[i,]$otu_rep2,split=", ")), unlist(strsplit(rep_compare_df[i,]$otu_rep1,split=", "))))
+  rep_compare_df[i,12] <- length(setdiff(unlist(strsplit(rep_compare_df[i,]$otu_rep1,split=", ")), unlist(strsplit(rep_compare_df[i,]$otu_rep2,split=", "))))
+  rep_compare_df[i,13] <- rep_compare_df[i,10]/sum(rep_compare_df[i,10],rep_compare_df[i,11],rep_compare_df[i,12])
+  rep_compare_df[i,14] <- rep_compare_df[i,11]/sum(rep_compare_df[i,10],rep_compare_df[i,11],rep_compare_df[i,12])
+  rep_compare_df[i,15] <- rep_compare_df[i,12]/sum(rep_compare_df[i,10],rep_compare_df[i,11],rep_compare_df[i,12])
+}
+colnames(rep_compare_df) <- c("rep1","rep2","group","Season","Fraction","Station","Depth_C","otu_rep2","otu_rep1","Shared","Uniq_rep2","Uniq_rep1","Shared_rel","Uniq_rep2_rel","Uniq_rep1_rel")
+
+#View(data.frame(rep_compare_df)) 
+
+## now make boxplots showing fraction OTUs shared bewteen cDNA and DNA datasets relative to between replicates
+#combine dataframes cDNA vs DNA overlap and replicates overlap
+shared_df <- compare_df[,c("group","Shared","Shared_rel","Season","Fraction","Station","Depth_C")]
+rep_shared_df <- rep_compare_df[,c("group","Shared","Shared_rel","Season","Fraction","Station","Depth_C")]
+
+#replace season, fraction, station, and depth fields with *_rep so that they can be differentiated in combined boxplot
+rep_shared_df$Season_new[rep_shared_df$Season=="Sp"]<-"Sp_rep"
+rep_shared_df$Season_new[rep_shared_df$Season=="Su"]<-"Su_rep"
+rep_shared_df$Season_new[rep_shared_df$Season=="Fa"]<-"Fa_rep"
+rep_shared_df$Station_new[rep_shared_df$Station=="MLB"]<-"MLB_rep"
+rep_shared_df$Station_new[rep_shared_df$Station=="MM15"]<-"MM15_rep"
+rep_shared_df$Station_new[rep_shared_df$Station=="MM110"]<-"MM110_rep"
+rep_shared_df$Fraction_new[rep_shared_df$Fraction=="E"]<-"E_rep"
+rep_shared_df$Fraction_new[rep_shared_df$Fraction=="B"]<-"B_rep"
+rep_shared_df$Depth_C_new[rep_shared_df$Depth_C=="S"]<-"S_rep"
+rep_shared_df$Depth_C_new[rep_shared_df$Depth_C=="M"]<-"M_rep"
+rep_shared_df$Depth_C_new[rep_shared_df$Depth_C=="D"]<-"D_rep"
+rep_shared_df <- rep_shared_df[,c("group","Shared","Shared_rel","Season_new","Fraction_new","Station_new","Depth_C_new")]
+colnames(rep_shared_df) <- c("group","Shared","Shared_rel","Season","Fraction","Station","Depth_C")
+#combining into 1 dataframe
+shared_DcD_reps <- rbind(shared_df,rep_shared_df)
+
+
+######1. how does overlap between cDNA:DNA change over the seasons relative to overlap between replicates 
+overlap_title <- paste("Overlap cDNA and DNA and between replicates when considering ",ntaxa(merged_final)," OTUs")
+
+shared_DcD_reps_Season_KW <- kruskal.test(shared_DcD_reps$Shared_rel ~ as.factor(shared_DcD_reps$Season)) 
+print(shared_DcD_reps_Season_KW)  # show Kruskal Wallis result
+### Which samples are significantly different from each other?  
+shared_DcD_reps_Season_KW_MC <- kruskalmc(shared_DcD_reps$Shared_rel ~ as.factor(shared_DcD_reps$Season))  ## Defaults to P < 0.05
+print(shared_DcD_reps_Season_KW_MC)
+
+### Test to find the letters to represent significance in a plot
+shared_DcD_reps_Season_test <- shared_DcD_reps_Season_KW_MC$dif.com$difference # select logical vector
+names(shared_DcD_reps_Season_test) <- row.names(shared_DcD_reps_Season_KW_MC$dif.com) # add comparison names
+# create a list with "homogenous groups" coded by letter
+shared_DcD_reps_Season_letters <- multcompLetters(shared_DcD_reps_Season_test, compare="<", threshold=0.05, 
+                                Letters=c(letters, LETTERS, "."), reversed = FALSE)
+###  Extract the values from the multcompLetters object
+shared_DcD_reps_Season_sigs_dataframe <-  data.frame(as.vector(names(shared_DcD_reps_Season_letters$Letters)), as.vector(shared_DcD_reps_Season_letters$Letters))
+colnames(shared_DcD_reps_Season_sigs_dataframe) <- c("Season", "siglabel")
+shared_DcD_reps_Season_try <- merge(shared_DcD_reps, shared_DcD_reps_Season_sigs_dataframe, by = "Season")
+
+shared_DcD_reps_Season_try$Season <-factor(shared_DcD_reps_Season_try$Season,levels=c( "Sp", "Sp_rep", "Su", "Su_rep", "Fa", "Fa_rep"))
+
+shared_DcD_reps_Season_sigs <- shared_DcD_reps_Season_try %>%
+  select(Season, Season, siglabel) %>%
+  distinct()
+
+pdf(file="Figures/Rplot_shared_DcD_reps_Season_boxplot.pdf", width= 5, height=5, pointsize= 14)
+shared_DcD_reps_Season_boxplot <- ggplot(shared_DcD_reps_Season_try, aes(x = Season, y = Shared_rel, fill = Season)) + geom_point(size = 2) +
+  geom_boxplot()  + ggtitle(overlap_title) +
+  geom_text(data = shared_DcD_reps_Season_sigs, aes(label = siglabel, x = Season, y = .95), size = 4) +
+  scale_fill_manual(name = "", limits=c("Sp", "Sp_rep", "Su", "Su_rep", "Fa", "Fa_rep"), 
+                     values = c("Sp" = "grey","Su" = "grey","Fa" = "grey","Sp_rep" = "grey","Su_rep" = "grey","Fa_rep" = "grey"))+
+  scale_x_discrete(breaks=c("Sp", "Sp_rep", "Su", "Su_rep", "Fa", "Fa_rep"),
+                   labels=c("Spring\ncD-D\n(n=14)","Spring\nrep1-2\n(n=21)", "Summer\ncD-D\n(n=17)", "Summer\nrep1-2\n(n=31)","Fall\ncD-D\n(n=16)","Fall\nrep1-2\n(n=27)")) + 
+  xlab("OTU overlap comparison)") + ylab("Fraction of OTUs shared") + theme_bw() + #scale_fill_brewer(palette="Paired") + 
+#  facet_grid(. ~ season1, scale = "free", space = "free") +
+  theme(plot.title = element_text(face="bold", size = 12),  #Set the plot title
+                                 strip.text.x = element_blank(),  #Set the facet titles on x-axis 
+                                 strip.text.y = element_blank(),  #Set the facet titles on x-axis 
+                                 strip.background = element_blank(),  #Set the facet background to no background
+                                 axis.title.x = element_text(face="bold", size=10),  #Set the x-axis title
+                                 axis.title.y = element_text(face="bold", size=10),  #Set the y-axis title
+                                 axis.text.x = element_text(angle=0, colour = "black", 
+                                                            vjust=1, hjust = 1, size=10),  #Set the x-axis labels
+                                 axis.text.y = element_text(colour = "black", size=10),  #Set the y-axis labels
+                                 legend.title = element_text(size = 8, face="bold"),  #Set the legend title 
+                                 legend.text = element_text(size = 8),  #Set the legend text
+                                 legend.position="none", #Default the legend position to the right
+                                 plot.margin = unit(c(0.1, 0.1, 0.1, 0.1), "cm")); shared_DcD_reps_Season_boxplot#top, right, bottom, left
+dev.off()
+
+######2. how does overlap between cDNA:DNA change over the fractions relative to overlap between replicates 
+overlap_title <- paste("Overlap cDNA and DNA and between replicates when considering ",ntaxa(merged_final)," OTUs")
+
+shared_DcD_reps_Fraction_KW <- kruskal.test(shared_DcD_reps$Shared_rel ~ as.factor(shared_DcD_reps$Fraction)) 
+print(shared_DcD_reps_Fraction_KW)  # show Kruskal Wallis result
+### Which samples are significantly different from each other?  
+shared_DcD_reps_Fraction_KW_MC <- kruskalmc(shared_DcD_reps$Shared_rel ~ as.factor(shared_DcD_reps$Fraction))  ## Defaults to P < 0.05
+print(shared_DcD_reps_Fraction_KW_MC)
+
+### Test to find the letters to represent significance in a plot
+shared_DcD_reps_Fraction_test <- shared_DcD_reps_Fraction_KW_MC$dif.com$difference # select logical vector
+names(shared_DcD_reps_Fraction_test) <- row.names(shared_DcD_reps_Fraction_KW_MC$dif.com) # add comparison names
+# create a list with "homogenous groups" coded by letter
+shared_DcD_reps_Fraction_letters <- multcompLetters(shared_DcD_reps_Fraction_test, compare="<", threshold=0.05, 
+                                Letters=c(letters, LETTERS, "."), reversed = FALSE)
+###  Extract the values from the multcompLetters object
+shared_DcD_reps_Fraction_sigs_dataframe <-  data.frame(as.vector(names(shared_DcD_reps_Fraction_letters$Letters)), as.vector(shared_DcD_reps_Fraction_letters$Letters))
+colnames(shared_DcD_reps_Fraction_sigs_dataframe) <- c("Fraction", "siglabel")
+shared_DcD_reps_Fraction_try <- merge(shared_DcD_reps, shared_DcD_reps_Fraction_sigs_dataframe, by = "Fraction")
+
+shared_DcD_reps_Fraction_try$Fraction <-factor(shared_DcD_reps_Fraction_try$Fraction,levels=c( "B", "B_rep", "E", "E_rep"))
+
+shared_DcD_reps_Fraction_sigs <- shared_DcD_reps_Fraction_try %>%
+  select(Fraction, Fraction, siglabel) %>%
+  distinct()
+
+pdf(file="Figures/Rplot_shared_DcD_reps_Fraction_boxplot.pdf", width= 5, height=5, pointsize= 14)
+shared_DcD_reps_Fraction_boxplot <- ggplot(shared_DcD_reps_Fraction_try, aes(x = Fraction, y = Shared_rel, fill = Fraction)) + geom_point(size = 2) +
+  geom_boxplot()  + ggtitle(overlap_title) +
+  geom_text(data = shared_DcD_reps_Fraction_sigs, aes(label = siglabel, x = Fraction, y = .95), size = 4) +
+  scale_fill_manual(name = "", limits=c("B", "B_rep", "E", "E_rep"), 
+                     values = c("B" = "grey","B_rep" = "grey","E" = "grey","E_rep" = "grey"))+
+  scale_x_discrete(breaks=c("B", "B_rep", "E", "E_rep"),
+                   labels=c("Free\ncD-D\n(n=24)","Free\nrep1-2\n(n=37)", "Particle\ncD-D\n(n=23)", "Particle\nrep1-2\n(n=42)")) + 
+  xlab("OTU overlap comparison)") + ylab("Fraction of OTUs shared") + theme_bw() + 
+  theme(plot.title = element_text(face="bold", size = 12),  #Set the plot title
+                                 strip.text.x = element_blank(),  #Set the facet titles on x-axis 
+                                 strip.text.y = element_blank(),  #Set the facet titles on x-axis 
+                                 strip.background = element_blank(),  #Set the facet background to no background
+                                 axis.title.x = element_text(face="bold", size=10),  #Set the x-axis title
+                                 axis.title.y = element_text(face="bold", size=10),  #Set the y-axis title
+                                 axis.text.x = element_text(angle=0, colour = "black", 
+                                                            vjust=1, hjust = 1, size=10),  #Set the x-axis labels
+                                 axis.text.y = element_text(colour = "black", size=10),  #Set the y-axis labels
+                                 legend.title = element_text(size = 8, face="bold"),  #Set the legend title 
+                                 legend.text = element_text(size = 8),  #Set the legend text
+                                 legend.position="none", #Default the legend position to the right
+                                 plot.margin = unit(c(0.1, 0.1, 0.1, 0.1), "cm")); shared_DcD_reps_Fraction_boxplot#top, right, bottom, left
+dev.off()
+
+######3. how does overlap between cDNA:DNA change over the stations relative to overlap between replicates 
+overlap_title <- paste("Overlap cDNA and DNA and between replicates when considering ",ntaxa(merged_final)," OTUs")
+
+shared_DcD_reps_Station_KW <- kruskal.test(shared_DcD_reps$Shared_rel ~ as.factor(shared_DcD_reps$Station)) 
+print(shared_DcD_reps_Station_KW)  # show Kruskal Wallis result
+### Which samples are significantly different from each other?  
+shared_DcD_reps_Station_KW_MC <- kruskalmc(shared_DcD_reps$Shared_rel ~ as.factor(shared_DcD_reps$Station))  ## Defaults to P < 0.05
+print(shared_DcD_reps_Station_KW_MC)
+
+### Test to find the letters to represent significance in a plot
+shared_DcD_reps_Station_test <- shared_DcD_reps_Station_KW_MC$dif.com$difference # select logical vector
+names(shared_DcD_reps_Station_test) <- row.names(shared_DcD_reps_Station_KW_MC$dif.com) # add comparison names
+# create a list with "homogenous groups" coded by letter
+shared_DcD_reps_Station_letters <- multcompLetters(shared_DcD_reps_Station_test, compare="<", threshold=0.05, 
+                                Letters=c(letters, LETTERS, "."), reversed = FALSE)
+###  Extract the values from the multcompLetters object
+shared_DcD_reps_Station_sigs_dataframe <-  data.frame(as.vector(names(shared_DcD_reps_Station_letters$Letters)), as.vector(shared_DcD_reps_Station_letters$Letters))
+colnames(shared_DcD_reps_Station_sigs_dataframe) <- c("Station", "siglabel")
+shared_DcD_reps_Station_try <- merge(shared_DcD_reps, shared_DcD_reps_Station_sigs_dataframe, by = "Station")
+
+shared_DcD_reps_Station_try$Station <-factor(shared_DcD_reps_Station_try$Station,levels=c( "MLB", "MLB_rep", "MM15", "MM15_rep", "MM110", "MM110_rep"))
+
+shared_DcD_reps_Station_sigs <- shared_DcD_reps_Station_try %>%
+  select(Station, Station, siglabel) %>%
+  distinct()
+
+pdf(file="Figures/Rplot_shared_DcD_reps_Station_boxplot.pdf", width= 5, height=5, pointsize= 14)
+shared_DcD_reps_Station_boxplot <- ggplot(shared_DcD_reps_Station_try, aes(x = Station, y = Shared_rel, fill = Station)) + geom_point(size = 2) +
+  geom_boxplot()  + ggtitle(overlap_title) +
+  geom_text(data = shared_DcD_reps_Station_sigs, aes(label = siglabel, x = Station, y = .95), size = 4) +
+  scale_fill_manual(name = "", limits=c("MLB", "MLB_rep", "MM15", "MM15_rep", "MM110", "MM110_rep"), 
+                     values = c("MLB" = "grey","MLB_rep" = "grey","MM15" = "grey","MM15_rep" = "grey","MM110" = "grey","MM110_rep" = "grey"))+
+  scale_x_discrete(breaks=c("MLB", "MLB_rep", "MM15", "MM15_rep", "MM110", "MM110_rep"),
+                   labels=c("MLB\ncD-D\n(n=10)","MLB\nrep1-2\n(n=10)", "LM15\ncD-D\n(n=18)", "LM15\nrep1-2\n(n=33)", "LM110\ncD-D\n(n=19)", "LM110\nrep1-2\n(n=36)")) + 
+  xlab("OTU overlap comparison)") + ylab("Fraction of OTUs shared") + theme_bw() + 
+  theme(plot.title = element_text(face="bold", size = 12),  #Set the plot title
+                                 strip.text.x = element_blank(),  #Set the facet titles on x-axis 
+                                 strip.text.y = element_blank(),  #Set the facet titles on x-axis 
+                                 strip.background = element_blank(),  #Set the facet background to no background
+                                 axis.title.x = element_text(face="bold", size=10),  #Set the x-axis title
+                                 axis.title.y = element_text(face="bold", size=10),  #Set the y-axis title
+                                 axis.text.x = element_text(angle=0, colour = "black", 
+                                                            vjust=1, hjust = 1, size=10),  #Set the x-axis labels
+                                 axis.text.y = element_text(colour = "black", size=10),  #Set the y-axis labels
+                                 legend.title = element_text(size = 8, face="bold"),  #Set the legend title 
+                                 legend.text = element_text(size = 8),  #Set the legend text
+                                 legend.position="none", #Default the legend position to the right
+                                 plot.margin = unit(c(0.1, 0.1, 0.1, 0.1), "cm")); shared_DcD_reps_Station_boxplot#top, right, bottom, left
+dev.off()
+
+######4. how does overlap between cDNA:DNA change over the depths relative to overlap between replicates 
+overlap_title <- paste("Overlap cDNA and DNA and between replicates when considering ",ntaxa(merged_final)," OTUs")
+
+shared_DcD_reps_Depth_C_KW <- kruskal.test(shared_DcD_reps$Shared_rel ~ as.factor(shared_DcD_reps$Depth_C)) 
+print(shared_DcD_reps_Depth_C_KW)  # show Kruskal Wallis result
+### Which samples are significantly different from each other?  
+shared_DcD_reps_Depth_C_KW_MC <- kruskalmc(shared_DcD_reps$Shared_rel ~ as.factor(shared_DcD_reps$Depth_C))  ## Defaults to P < 0.05
+print(shared_DcD_reps_Depth_C_KW_MC)
+
+### Test to find the letters to represent significance in a plot
+shared_DcD_reps_Depth_C_test <- shared_DcD_reps_Depth_C_KW_MC$dif.com$difference # select logical vector
+names(shared_DcD_reps_Depth_C_test) <- row.names(shared_DcD_reps_Depth_C_KW_MC$dif.com) # add comparison names
+# create a list with "homogenous groups" coded by letter
+shared_DcD_reps_Depth_C_letters <- multcompLetters(shared_DcD_reps_Depth_C_test, compare="<", threshold=0.05, 
+                                Letters=c(letters, LETTERS, "."), reversed = FALSE)
+###  Extract the values from the multcompLetters object
+shared_DcD_reps_Depth_C_sigs_dataframe <-  data.frame(as.vector(names(shared_DcD_reps_Depth_C_letters$Letters)), as.vector(shared_DcD_reps_Depth_C_letters$Letters))
+colnames(shared_DcD_reps_Depth_C_sigs_dataframe) <- c("Depth_C", "siglabel")
+shared_DcD_reps_Depth_C_try <- merge(shared_DcD_reps, shared_DcD_reps_Depth_C_sigs_dataframe, by = "Depth_C")
+
+shared_DcD_reps_Depth_C_try$Depth_C <-factor(shared_DcD_reps_Depth_C_try$Depth_C,levels=c( "S", "S_rep", "M", "M_rep", "D", "D_rep"))
+
+shared_DcD_reps_Depth_C_sigs <- shared_DcD_reps_Depth_C_try %>%
+  select(Depth_C, Depth_C, siglabel) %>%
+  distinct()
+
+pdf(file="Figures/Rplot_shared_DcD_reps_Depth_boxplot.pdf", width= 5, height=5, pointsize= 14)
+shared_DcD_reps_Depth_C_boxplot <- ggplot(shared_DcD_reps_Depth_C_try, aes(x = Depth_C, y = Shared_rel, fill = Depth_C)) + geom_point(size = 2) +
+  geom_boxplot()  + ggtitle(overlap_title) +
+  geom_text(data = shared_DcD_reps_Depth_C_sigs, aes(label = siglabel, x = Depth_C, y = .95), size = 4) +
+  scale_fill_manual(name = "", limits=c("S", "S_rep", "M", "M_rep", "D", "D_rep"), 
+                     values = c("S" = "grey","S_rep" = "grey","M" = "grey","M_rep" = "grey","D" = "grey","D_rep" = "grey"))+
+  scale_x_discrete(breaks=c("S", "S_rep", "M", "M_rep", "D", "D_rep"),
+                   labels=c("Surface\ncD-D\n(n=30)","Surface\nrep1-2\n(n=51)", "Chl Max\ncD-D\n(n=2)", "Chl Max\nrep1-2\n(n=4)", "Deep\ncD-D\n(n=15)", "Deep\nrep1-2\n(n=24)")) + 
+  xlab("OTU overlap comparison)") + ylab("Fraction of OTUs shared") + theme_bw() + 
+  theme(plot.title = element_text(face="bold", size = 12),  #Set the plot title
+                                 strip.text.x = element_blank(),  #Set the facet titles on x-axis 
+                                 strip.text.y = element_blank(),  #Set the facet titles on x-axis 
+                                 strip.background = element_blank(),  #Set the facet background to no background
+                                 axis.title.x = element_text(face="bold", size=10),  #Set the x-axis title
+                                 axis.title.y = element_text(face="bold", size=10),  #Set the y-axis title
+                                 axis.text.x = element_text(angle=0, colour = "black", 
+                                                            vjust=1, hjust = 1, size=10),  #Set the x-axis labels
+                                 axis.text.y = element_text(colour = "black", size=10),  #Set the y-axis labels
+                                 legend.title = element_text(size = 8, face="bold"),  #Set the legend title 
+                                 legend.text = element_text(size = 8),  #Set the legend text
+                                 legend.position="none", #Default the legend position to the right
+                                 plot.margin = unit(c(0.1, 0.1, 0.1, 0.1), "cm")); shared_DcD_reps_Depth_C_boxplot#top, right, bottom, left
 dev.off()
 ```
 
-```{r cDNA:DNA ratio data PCoA and ADONIS}
+```{r top 200 taxa RNA vs DNA overlap}
+########## cDNA vs DNA overlap of OTUs ########## 
+
+# first make a dataframe that has sample name and list of comma-delimited otus in it
+temp <- otu_table(merged_final_toptaxa)
+otu_list <- vector(mode="character", length=length(colnames(temp)))
+for(i in 1:length(colnames(temp))){
+  otu_list[i]<-as.character(colnames(temp)[i])}
+otu_list_df <- data.frame(otu_list,otu_list,stringsAsFactors=FALSE)
+colnames(otu_list_df) <- c("sample","otu_list")
+for(i in 1:length(rownames(otu_list_df))){
+  otu_list_df[i,2]<-toString(rownames(temp)[temp[,otu_list_df[i,1]] > 0],sep=",")}
+
+## now make dataframe that adds group to compare in column 1, samples to compare in column 2 and 3, their corresponding otus in 4 and 5, then add overlap, unique cDNA, unique DNA in column 6, 7, and 8
+#create new phyloseq object to manipulate
+temp_data <- sample_data(merged_final_toptaxa)
+temp_otu <- otu_table(merged_final_toptaxa)
+temp_taxa <- tax_table(merged_final_toptaxa)
+temp_data$Sample = rownames(temp_data)
+temp_phy <- merge_phyloseq(temp_otu, temp_taxa, temp_data)
+
+#create new dataframe to store otu overlap data (cDNA vs DNA)
+compare_df<-data.frame(unique(sample_data(subset_samples(temp_phy,Sample != "Su.EcD.110.DN"))$Group_cDvsD),rownames(sample_data(subset_samples(subset_samples(temp_phy, DNA == "cD"), Sample != "Su.EcD.110.DN"))),rownames(sample_data(subset_samples(temp_phy, DNA == "D"))),sample_data(subset_samples(temp_phy, DNA == "D"))$Season,sample_data(subset_samples(temp_phy, DNA == "D"))$Fraction,sample_data(subset_samples(temp_phy, DNA == "D"))$Station,sample_data(subset_samples(temp_phy, DNA == "D"))$Depth_C)
+colnames(compare_df) <- c("group","cDNA","DNA","Season","Fraction","Station","Depth_C")
+colnames(otu_list_df) <- c("cDNA","otu_cDNA")
+compare_df <- merge(compare_df,otu_list_df,by="cDNA")
+colnames(otu_list_df) <- c("DNA","otu_DNA")
+compare_df <- merge(compare_df,otu_list_df,by="DNA")
+colnames(otu_list_df) <- c("sample","otu_list")
+for(i in 1:length(rownames(compare_df))){
+  compare_df[i,10]<-length(intersect(unlist(strsplit(compare_df[i,]$otu_cDNA,split=", ")), unlist(strsplit(compare_df[i,]$otu_DNA,split=", "))))
+  compare_df[i,11] <- length(setdiff(unlist(strsplit(compare_df[i,]$otu_cDNA,split=", ")), unlist(strsplit(compare_df[i,]$otu_DNA,split=", "))))
+  compare_df[i,12] <- length(setdiff(unlist(strsplit(compare_df[i,]$otu_DNA,split=", ")), unlist(strsplit(compare_df[i,]$otu_cDNA,split=", "))))
+  compare_df[i,13] <- compare_df[i,10]/sum(compare_df[i,10],compare_df[i,11],compare_df[i,12])
+  compare_df[i,14] <- compare_df[i,11]/sum(compare_df[i,10],compare_df[i,11],compare_df[i,12])
+  compare_df[i,15] <- compare_df[i,12]/sum(compare_df[i,10],compare_df[i,11],compare_df[i,12])
+}
+colnames(compare_df) <- c("DNA","cDNA","group","Season","Fraction","Station","Depth_C","otu_cDNA","otu_DNA","Shared","Uniq_cDNA","Uniq_DNA","Shared_rel","Uniq_cDNA_rel","Uniq_DNA_rel")
+
+########## rep1 vs rep2 overlap of OTUs ########## 
+
+# first make a dataframe that has sample name and list of comma-delimited otus in it
+# we will do OTU overlap analysis only for OTUs witheld for cDNA-DNA overlap analysis
+physeq_reps = prune_taxa(taxa_names(merged_final_toptaxa),physeq_toptaxa)
+rep_temp <- otu_table(physeq_reps)
+rep_otu_list <- vector(mode="character", length=length(colnames(rep_temp)))
+for(i in 1:length(colnames(rep_temp))){
+  rep_otu_list[i]<-as.character(colnames(rep_temp)[i])}
+rep_otu_list_df <- data.frame(rep_otu_list,rep_otu_list,stringsAsFactors=FALSE)
+colnames(rep_otu_list_df) <- c("sample","otu_list")
+for(i in 1:length(rownames(rep_otu_list_df))){
+  rep_otu_list_df[i,2]<-toString(rownames(rep_temp)[rep_temp[,rep_otu_list_df[i,1]] > 0],sep=",")}
+
+## now make dataframe that adds group to compare in column 1, samples to compare in column 2 and 3, their corresponding otus in 4 and 5, then add overlap, unique rep1, unique rep2 in column 6, 7, and 8
+#create new phyloseq object to manipulate
+rep_temp_data <- sample_data(physeq_reps)
+rep_temp_otu <- otu_table(physeq_reps)
+rep_temp_taxa <- tax_table(physeq_reps)
+rep_temp_data$Sample = rownames(rep_temp_data)
+rep_temp_phy <- merge_phyloseq(rep_temp_otu, rep_temp_taxa, rep_temp_data)
+rep_group_sums <- as.matrix(table(sample_data(rep_temp_phy)[ ,"Group"]))[,1]
+reps <- as.data.frame(rep_group_sums)
+reps$Group <- rownames(reps)
+rep_temp_data <- data.frame(rep_temp_data)
+rep_temp_data <-  merge(rep_temp_data,reps,by="Group")
+rownames(rep_temp_data) = rep_temp_data$Sample
+rep_temp_data = sample_data(rep_temp_data)
+rep_temp_phy <- merge_phyloseq(rep_temp_otu, rep_temp_taxa, rep_temp_data)
+
+#create new dataframe to store otu overlap data (cDNA vs DNA)
+rep_compare_df<-data.frame(unique(sample_data(subset_samples(rep_temp_phy,rep_group_sums != "1"))$Group),rownames(sample_data(subset_samples(subset_samples(rep_temp_phy, Replicates == "2"), rep_group_sums != "1"))),rownames(sample_data(subset_samples(subset_samples(rep_temp_phy, Replicates == "1"), rep_group_sums != "1"))),sample_data(subset_samples(subset_samples(rep_temp_phy,rep_group_sums != "1"),Replicates == "2"))$Season,sample_data(subset_samples(subset_samples(rep_temp_phy,rep_group_sums != "1"),Replicates == "2"))$Fraction,sample_data(subset_samples(subset_samples(rep_temp_phy,rep_group_sums != "1"),Replicates == "2"))$Station,sample_data(subset_samples(subset_samples(rep_temp_phy,rep_group_sums != "1"),Replicates == "2"))$Depth_C)
+colnames(rep_compare_df) <- c("group","rep2","rep1","Season","Fraction","Station","Depth_C")
+colnames(rep_otu_list_df) <- c("rep2","otu_rep2")
+rep_compare_df <- merge(rep_compare_df,rep_otu_list_df,by="rep2")
+colnames(rep_otu_list_df) <- c("rep1","otu_rep1")
+rep_compare_df <- merge(rep_compare_df,rep_otu_list_df,by="rep1")
+colnames(rep_otu_list_df) <- c("sample","otu_list")
+for(i in 1:length(rownames(rep_compare_df))){
+  rep_compare_df[i,10]<-length(intersect(unlist(strsplit(rep_compare_df[i,]$otu_rep2,split=", ")), unlist(strsplit(rep_compare_df[i,]$otu_rep1,split=", "))))
+  rep_compare_df[i,11] <- length(setdiff(unlist(strsplit(rep_compare_df[i,]$otu_rep2,split=", ")), unlist(strsplit(rep_compare_df[i,]$otu_rep1,split=", "))))
+  rep_compare_df[i,12] <- length(setdiff(unlist(strsplit(rep_compare_df[i,]$otu_rep1,split=", ")), unlist(strsplit(rep_compare_df[i,]$otu_rep2,split=", "))))
+  rep_compare_df[i,13] <- rep_compare_df[i,10]/sum(rep_compare_df[i,10],rep_compare_df[i,11],rep_compare_df[i,12])
+  rep_compare_df[i,14] <- rep_compare_df[i,11]/sum(rep_compare_df[i,10],rep_compare_df[i,11],rep_compare_df[i,12])
+  rep_compare_df[i,15] <- rep_compare_df[i,12]/sum(rep_compare_df[i,10],rep_compare_df[i,11],rep_compare_df[i,12])
+}
+colnames(rep_compare_df) <- c("rep1","rep2","group","Season","Fraction","Station","Depth_C","otu_rep2","otu_rep1","Shared","Uniq_rep2","Uniq_rep1","Shared_rel","Uniq_rep2_rel","Uniq_rep1_rel")
+
+#View(data.frame(rep_compare_df)) 
+
+## now make boxplots showing fraction OTUs shared bewteen cDNA and DNA datasets relative to between replicates
+#combine dataframes cDNA vs DNA overlap and replicates overlap
+shared_df <- compare_df[,c("group","Shared","Shared_rel","Season","Fraction","Station","Depth_C")]
+rep_shared_df <- rep_compare_df[,c("group","Shared","Shared_rel","Season","Fraction","Station","Depth_C")]
+
+#replace season, fraction, station, and depth fields with *_rep so that they can be differentiated in combined boxplot
+rep_shared_df$Season_new[rep_shared_df$Season=="Sp"]<-"Sp_rep"
+rep_shared_df$Season_new[rep_shared_df$Season=="Su"]<-"Su_rep"
+rep_shared_df$Season_new[rep_shared_df$Season=="Fa"]<-"Fa_rep"
+rep_shared_df$Station_new[rep_shared_df$Station=="MLB"]<-"MLB_rep"
+rep_shared_df$Station_new[rep_shared_df$Station=="MM15"]<-"MM15_rep"
+rep_shared_df$Station_new[rep_shared_df$Station=="MM110"]<-"MM110_rep"
+rep_shared_df$Fraction_new[rep_shared_df$Fraction=="E"]<-"E_rep"
+rep_shared_df$Fraction_new[rep_shared_df$Fraction=="B"]<-"B_rep"
+rep_shared_df$Depth_C_new[rep_shared_df$Depth_C=="S"]<-"S_rep"
+rep_shared_df$Depth_C_new[rep_shared_df$Depth_C=="M"]<-"M_rep"
+rep_shared_df$Depth_C_new[rep_shared_df$Depth_C=="D"]<-"D_rep"
+rep_shared_df <- rep_shared_df[,c("group","Shared","Shared_rel","Season_new","Fraction_new","Station_new","Depth_C_new")]
+colnames(rep_shared_df) <- c("group","Shared","Shared_rel","Season","Fraction","Station","Depth_C")
+#combining into 1 dataframe
+shared_DcD_reps <- rbind(shared_df,rep_shared_df)
+
+
+######1. how does overlap between cDNA:DNA change over the seasons relative to overlap between replicates 
+overlap_title <- paste("Overlap cDNA and DNA and between replicates when considering ",ntaxa(merged_final_toptaxa)," OTUs")
+
+shared_DcD_reps_Season_KW <- kruskal.test(shared_DcD_reps$Shared_rel ~ as.factor(shared_DcD_reps$Season)) 
+print(shared_DcD_reps_Season_KW)  # show Kruskal Wallis result
+### Which samples are significantly different from each other?  
+shared_DcD_reps_Season_KW_MC <- kruskalmc(shared_DcD_reps$Shared_rel ~ as.factor(shared_DcD_reps$Season))  ## Defaults to P < 0.05
+print(shared_DcD_reps_Season_KW_MC)
+
+### Test to find the letters to represent significance in a plot
+shared_DcD_reps_Season_test <- shared_DcD_reps_Season_KW_MC$dif.com$difference # select logical vector
+names(shared_DcD_reps_Season_test) <- row.names(shared_DcD_reps_Season_KW_MC$dif.com) # add comparison names
+# create a list with "homogenous groups" coded by letter
+shared_DcD_reps_Season_letters <- multcompLetters(shared_DcD_reps_Season_test, compare="<", threshold=0.05, 
+                                Letters=c(letters, LETTERS, "."), reversed = FALSE)
+###  Extract the values from the multcompLetters object
+shared_DcD_reps_Season_sigs_dataframe <-  data.frame(as.vector(names(shared_DcD_reps_Season_letters$Letters)), as.vector(shared_DcD_reps_Season_letters$Letters))
+colnames(shared_DcD_reps_Season_sigs_dataframe) <- c("Season", "siglabel")
+shared_DcD_reps_Season_try <- merge(shared_DcD_reps, shared_DcD_reps_Season_sigs_dataframe, by = "Season")
+
+shared_DcD_reps_Season_try$Season <-factor(shared_DcD_reps_Season_try$Season,levels=c( "Sp", "Sp_rep", "Su", "Su_rep", "Fa", "Fa_rep"))
+
+shared_DcD_reps_Season_sigs <- shared_DcD_reps_Season_try %>%
+  select(Season, Season, siglabel) %>%
+  distinct()
+
+pdf(file="Figures/Rplot_shared_DcD_reps_Season_boxplot_toptaxa.pdf", width= 5, height=5, pointsize= 14)
+shared_DcD_reps_Season_boxplot_toptaxa <- ggplot(shared_DcD_reps_Season_try, aes(x = Season, y = Shared_rel, fill = Season)) + geom_point(size = 2) +
+  geom_boxplot()  + ggtitle(overlap_title) +
+  geom_text(data = shared_DcD_reps_Season_sigs, aes(label = siglabel, x = Season, y = .95), size = 4) +
+  scale_fill_manual(name = "", limits=c("Sp", "Sp_rep", "Su", "Su_rep", "Fa", "Fa_rep"), 
+                     values = c("Sp" = "grey","Su" = "grey","Fa" = "grey","Sp_rep" = "grey","Su_rep" = "grey","Fa_rep" = "grey"))+
+  scale_x_discrete(breaks=c("Sp", "Sp_rep", "Su", "Su_rep", "Fa", "Fa_rep"),
+                   labels=c("Spring\ncD-D\n(n=14)","Spring\nrep1-2\n(n=21)", "Summer\ncD-D\n(n=17)", "Summer\nrep1-2\n(n=31)","Fall\ncD-D\n(n=16)","Fall\nrep1-2\n(n=27)")) + 
+  xlab("OTU overlap comparison)") + ylab("Fraction of OTUs shared") + theme_bw() + #scale_fill_brewer(palette="Paired") + 
+#  facet_grid(. ~ season1, scale = "free", space = "free") +
+  theme(plot.title = element_text(face="bold", size = 12),  #Set the plot title
+                                 strip.text.x = element_blank(),  #Set the facet titles on x-axis 
+                                 strip.text.y = element_blank(),  #Set the facet titles on x-axis 
+                                 strip.background = element_blank(),  #Set the facet background to no background
+                                 axis.title.x = element_text(face="bold", size=10),  #Set the x-axis title
+                                 axis.title.y = element_text(face="bold", size=10),  #Set the y-axis title
+                                 axis.text.x = element_text(angle=0, colour = "black", 
+                                                            vjust=1, hjust = 1, size=10),  #Set the x-axis labels
+                                 axis.text.y = element_text(colour = "black", size=10),  #Set the y-axis labels
+                                 legend.title = element_text(size = 8, face="bold"),  #Set the legend title 
+                                 legend.text = element_text(size = 8),  #Set the legend text
+                                 legend.position="none", #Default the legend position to the right
+                                 plot.margin = unit(c(0.1, 0.1, 0.1, 0.1), "cm")); shared_DcD_reps_Season_boxplot_toptaxa#top, right, bottom, left
+dev.off()
+
+######2. how does overlap between cDNA:DNA change over the fractions relative to overlap between replicates 
+overlap_title <- paste("Overlap cDNA and DNA and between replicates when considering ",ntaxa(merged_final)," OTUs")
+
+shared_DcD_reps_Fraction_KW <- kruskal.test(shared_DcD_reps$Shared_rel ~ as.factor(shared_DcD_reps$Fraction)) 
+print(shared_DcD_reps_Fraction_KW)  # show Kruskal Wallis result
+### Which samples are significantly different from each other?  
+shared_DcD_reps_Fraction_KW_MC <- kruskalmc(shared_DcD_reps$Shared_rel ~ as.factor(shared_DcD_reps$Fraction))  ## Defaults to P < 0.05
+print(shared_DcD_reps_Fraction_KW_MC)
+
+### Test to find the letters to represent significance in a plot
+shared_DcD_reps_Fraction_test <- shared_DcD_reps_Fraction_KW_MC$dif.com$difference # select logical vector
+names(shared_DcD_reps_Fraction_test) <- row.names(shared_DcD_reps_Fraction_KW_MC$dif.com) # add comparison names
+# create a list with "homogenous groups" coded by letter
+shared_DcD_reps_Fraction_letters <- multcompLetters(shared_DcD_reps_Fraction_test, compare="<", threshold=0.05, 
+                                Letters=c(letters, LETTERS, "."), reversed = FALSE)
+###  Extract the values from the multcompLetters object
+shared_DcD_reps_Fraction_sigs_dataframe <-  data.frame(as.vector(names(shared_DcD_reps_Fraction_letters$Letters)), as.vector(shared_DcD_reps_Fraction_letters$Letters))
+colnames(shared_DcD_reps_Fraction_sigs_dataframe) <- c("Fraction", "siglabel")
+shared_DcD_reps_Fraction_try <- merge(shared_DcD_reps, shared_DcD_reps_Fraction_sigs_dataframe, by = "Fraction")
+
+shared_DcD_reps_Fraction_try$Fraction <-factor(shared_DcD_reps_Fraction_try$Fraction,levels=c( "B", "B_rep", "E", "E_rep"))
+
+shared_DcD_reps_Fraction_sigs <- shared_DcD_reps_Fraction_try %>%
+  select(Fraction, Fraction, siglabel) %>%
+  distinct()
+
+pdf(file="Figures/Rplot_shared_DcD_reps_Fraction_boxplot_toptaxa.pdf", width= 5, height=5, pointsize= 14)
+shared_DcD_reps_Fraction_boxplot_toptaxa <- ggplot(shared_DcD_reps_Fraction_try, aes(x = Fraction, y = Shared_rel, fill = Fraction)) + geom_point(size = 2) +
+  geom_boxplot()  + ggtitle(overlap_title) +
+  geom_text(data = shared_DcD_reps_Fraction_sigs, aes(label = siglabel, x = Fraction, y = .95), size = 4) +
+  scale_fill_manual(name = "", limits=c("B", "B_rep", "E", "E_rep"), 
+                     values = c("B" = "grey","B_rep" = "grey","E" = "grey","E_rep" = "grey"))+
+  scale_x_discrete(breaks=c("B", "B_rep", "E", "E_rep"),
+                   labels=c("Free\ncD-D\n(n=24)","Free\nrep1-2\n(n=37)", "Particle\ncD-D\n(n=23)", "Particle\nrep1-2\n(n=42)")) + 
+  xlab("OTU overlap comparison)") + ylab("Fraction of OTUs shared") + theme_bw() + 
+  theme(plot.title = element_text(face="bold", size = 12),  #Set the plot title
+                                 strip.text.x = element_blank(),  #Set the facet titles on x-axis 
+                                 strip.text.y = element_blank(),  #Set the facet titles on x-axis 
+                                 strip.background = element_blank(),  #Set the facet background to no background
+                                 axis.title.x = element_text(face="bold", size=10),  #Set the x-axis title
+                                 axis.title.y = element_text(face="bold", size=10),  #Set the y-axis title
+                                 axis.text.x = element_text(angle=0, colour = "black", 
+                                                            vjust=1, hjust = 1, size=10),  #Set the x-axis labels
+                                 axis.text.y = element_text(colour = "black", size=10),  #Set the y-axis labels
+                                 legend.title = element_text(size = 8, face="bold"),  #Set the legend title 
+                                 legend.text = element_text(size = 8),  #Set the legend text
+                                 legend.position="none", #Default the legend position to the right
+                                 plot.margin = unit(c(0.1, 0.1, 0.1, 0.1), "cm")); shared_DcD_reps_Fraction_boxplot_toptaxa#top, right, bottom, left
+dev.off()
+
+######3. how does overlap between cDNA:DNA change over the stations relative to overlap between replicates 
+overlap_title <- paste("Overlap cDNA and DNA and between replicates when considering ",ntaxa(merged_final)," OTUs")
+
+shared_DcD_reps_Station_KW <- kruskal.test(shared_DcD_reps$Shared_rel ~ as.factor(shared_DcD_reps$Station)) 
+print(shared_DcD_reps_Station_KW)  # show Kruskal Wallis result
+### Which samples are significantly different from each other?  
+shared_DcD_reps_Station_KW_MC <- kruskalmc(shared_DcD_reps$Shared_rel ~ as.factor(shared_DcD_reps$Station))  ## Defaults to P < 0.05
+print(shared_DcD_reps_Station_KW_MC)
+
+### Test to find the letters to represent significance in a plot
+shared_DcD_reps_Station_test <- shared_DcD_reps_Station_KW_MC$dif.com$difference # select logical vector
+names(shared_DcD_reps_Station_test) <- row.names(shared_DcD_reps_Station_KW_MC$dif.com) # add comparison names
+# create a list with "homogenous groups" coded by letter
+shared_DcD_reps_Station_letters <- multcompLetters(shared_DcD_reps_Station_test, compare="<", threshold=0.05, 
+                                Letters=c(letters, LETTERS, "."), reversed = FALSE)
+###  Extract the values from the multcompLetters object
+shared_DcD_reps_Station_sigs_dataframe <-  data.frame(as.vector(names(shared_DcD_reps_Station_letters$Letters)), as.vector(shared_DcD_reps_Station_letters$Letters))
+colnames(shared_DcD_reps_Station_sigs_dataframe) <- c("Station", "siglabel")
+shared_DcD_reps_Station_try <- merge(shared_DcD_reps, shared_DcD_reps_Station_sigs_dataframe, by = "Station")
+
+shared_DcD_reps_Station_try$Station <-factor(shared_DcD_reps_Station_try$Station,levels=c( "MLB", "MLB_rep", "MM15", "MM15_rep", "MM110", "MM110_rep"))
+
+shared_DcD_reps_Station_sigs <- shared_DcD_reps_Station_try %>%
+  select(Station, Station, siglabel) %>%
+  distinct()
+
+pdf(file="Figures/Rplot_shared_DcD_reps_Station_boxplot_toptaxa.pdf", width= 5, height=5, pointsize= 14)
+shared_DcD_reps_Station_boxplot_toptaxa <- ggplot(shared_DcD_reps_Station_try, aes(x = Station, y = Shared_rel, fill = Station)) + geom_point(size = 2) +
+  geom_boxplot()  + ggtitle(overlap_title) +
+  geom_text(data = shared_DcD_reps_Station_sigs, aes(label = siglabel, x = Station, y = .95), size = 4) +
+  scale_fill_manual(name = "", limits=c("MLB", "MLB_rep", "MM15", "MM15_rep", "MM110", "MM110_rep"), 
+                     values = c("MLB" = "grey","MLB_rep" = "grey","MM15" = "grey","MM15_rep" = "grey","MM110" = "grey","MM110_rep" = "grey"))+
+  scale_x_discrete(breaks=c("MLB", "MLB_rep", "MM15", "MM15_rep", "MM110", "MM110_rep"),
+                   labels=c("MLB\ncD-D\n(n=10)","MLB\nrep1-2\n(n=10)", "LM15\ncD-D\n(n=18)", "LM15\nrep1-2\n(n=33)", "LM110\ncD-D\n(n=19)", "LM110\nrep1-2\n(n=36)")) + 
+  xlab("OTU overlap comparison)") + ylab("Fraction of OTUs shared") + theme_bw() + 
+  theme(plot.title = element_text(face="bold", size = 12),  #Set the plot title
+                                 strip.text.x = element_blank(),  #Set the facet titles on x-axis 
+                                 strip.text.y = element_blank(),  #Set the facet titles on x-axis 
+                                 strip.background = element_blank(),  #Set the facet background to no background
+                                 axis.title.x = element_text(face="bold", size=10),  #Set the x-axis title
+                                 axis.title.y = element_text(face="bold", size=10),  #Set the y-axis title
+                                 axis.text.x = element_text(angle=0, colour = "black", 
+                                                            vjust=1, hjust = 1, size=10),  #Set the x-axis labels
+                                 axis.text.y = element_text(colour = "black", size=10),  #Set the y-axis labels
+                                 legend.title = element_text(size = 8, face="bold"),  #Set the legend title 
+                                 legend.text = element_text(size = 8),  #Set the legend text
+                                 legend.position="none", #Default the legend position to the right
+                                 plot.margin = unit(c(0.1, 0.1, 0.1, 0.1), "cm")); shared_DcD_reps_Station_boxplot_toptaxa#top, right, bottom, left
+dev.off()
+
+######4. how does overlap between cDNA:DNA change over the depths relative to overlap between replicates 
+overlap_title <- paste("Overlap cDNA and DNA and between replicates when considering ",ntaxa(merged_final)," OTUs")
+
+shared_DcD_reps_Depth_C_KW <- kruskal.test(shared_DcD_reps$Shared_rel ~ as.factor(shared_DcD_reps$Depth_C)) 
+print(shared_DcD_reps_Depth_C_KW)  # show Kruskal Wallis result
+### Which samples are significantly different from each other?  
+shared_DcD_reps_Depth_C_KW_MC <- kruskalmc(shared_DcD_reps$Shared_rel ~ as.factor(shared_DcD_reps$Depth_C))  ## Defaults to P < 0.05
+print(shared_DcD_reps_Depth_C_KW_MC)
+
+### Test to find the letters to represent significance in a plot
+shared_DcD_reps_Depth_C_test <- shared_DcD_reps_Depth_C_KW_MC$dif.com$difference # select logical vector
+names(shared_DcD_reps_Depth_C_test) <- row.names(shared_DcD_reps_Depth_C_KW_MC$dif.com) # add comparison names
+# create a list with "homogenous groups" coded by letter
+shared_DcD_reps_Depth_C_letters <- multcompLetters(shared_DcD_reps_Depth_C_test, compare="<", threshold=0.05, 
+                                Letters=c(letters, LETTERS, "."), reversed = FALSE)
+###  Extract the values from the multcompLetters object
+shared_DcD_reps_Depth_C_sigs_dataframe <-  data.frame(as.vector(names(shared_DcD_reps_Depth_C_letters$Letters)), as.vector(shared_DcD_reps_Depth_C_letters$Letters))
+colnames(shared_DcD_reps_Depth_C_sigs_dataframe) <- c("Depth_C", "siglabel")
+shared_DcD_reps_Depth_C_try <- merge(shared_DcD_reps, shared_DcD_reps_Depth_C_sigs_dataframe, by = "Depth_C")
+
+shared_DcD_reps_Depth_C_try$Depth_C <-factor(shared_DcD_reps_Depth_C_try$Depth_C,levels=c( "S", "S_rep", "M", "M_rep", "D", "D_rep"))
+
+shared_DcD_reps_Depth_C_sigs <- shared_DcD_reps_Depth_C_try %>%
+  select(Depth_C, Depth_C, siglabel) %>%
+  distinct()
+
+pdf(file="Figures/Rplot_shared_DcD_reps_Depth_boxplot_toptaxa.pdf", width= 5, height=5, pointsize= 14)
+shared_DcD_reps_Depth_C_boxplot_toptaxa <- ggplot(shared_DcD_reps_Depth_C_try, aes(x = Depth_C, y = Shared_rel, fill = Depth_C)) + geom_point(size = 2) +
+  geom_boxplot()  + ggtitle(overlap_title) +
+  geom_text(data = shared_DcD_reps_Depth_C_sigs, aes(label = siglabel, x = Depth_C, y = .95), size = 4) +
+  scale_fill_manual(name = "", limits=c("S", "S_rep", "M", "M_rep", "D", "D_rep"), 
+                     values = c("S" = "grey","S_rep" = "grey","M" = "grey","M_rep" = "grey","D" = "grey","D_rep" = "grey"))+
+  scale_x_discrete(breaks=c("S", "S_rep", "M", "M_rep", "D", "D_rep"),
+                   labels=c("Surface\ncD-D\n(n=30)","Surface\nrep1-2\n(n=51)", "Chl Max\ncD-D\n(n=2)", "Chl Max\nrep1-2\n(n=4)", "Deep\ncD-D\n(n=15)", "Deep\nrep1-2\n(n=24)")) + 
+  xlab("OTU overlap comparison)") + ylab("Fraction of OTUs shared") + theme_bw() + 
+  theme(plot.title = element_text(face="bold", size = 12),  #Set the plot title
+                                 strip.text.x = element_blank(),  #Set the facet titles on x-axis 
+                                 strip.text.y = element_blank(),  #Set the facet titles on x-axis 
+                                 strip.background = element_blank(),  #Set the facet background to no background
+                                 axis.title.x = element_text(face="bold", size=10),  #Set the x-axis title
+                                 axis.title.y = element_text(face="bold", size=10),  #Set the y-axis title
+                                 axis.text.x = element_text(angle=0, colour = "black", 
+                                                            vjust=1, hjust = 1, size=10),  #Set the x-axis labels
+                                 axis.text.y = element_text(colour = "black", size=10),  #Set the y-axis labels
+                                 legend.title = element_text(size = 8, face="bold"),  #Set the legend title 
+                                 legend.text = element_text(size = 8),  #Set the legend text
+                                 legend.position="none", #Default the legend position to the right
+                                 plot.margin = unit(c(0.1, 0.1, 0.1, 0.1), "cm")); shared_DcD_reps_Depth_C_boxplot_toptaxa#top, right, bottom, left
+dev.off()
+```
+
+```{r top 200 taxa RNA:DNA ratio data PCoA + ADONIS}
 ######################################################################################################
 ##################################  cDNA vs DNA ######################################################
 ######################################################################################################
 
 ########## cDNA:DNA PCoA ##########
 #first separate otu_tables DNA and cDNA data, omit sample with no DNA match
-mf_cD<-data.frame(otu_table(subset_samples(subset_samples(merged_final,DNA == "cD"),names != "Su.EcD.110.DN")))
+mf_cD<-data.frame(otu_table(subset_samples(subset_samples(merged_final_toptaxa,DNA == "cD"),names != "Su.EcD.110.DN")))
 mf_cD$OTU=rownames(mf_cD)
-mf_D<-data.frame(otu_table(subset_samples(merged_final,DNA == "D")))
+mf_D<-data.frame(otu_table(subset_samples(merged_final_toptaxa,DNA == "D")))
 mf_D$OTU=rownames(mf_D)
 #combine into 1 dataframe, then divide cDNA by DNA data (adding 1 to each element to avoid zeroes)
 both = merge(mf_cD,mf_D)
@@ -573,7 +1339,7 @@ rownames(mf_cD2D) = rownames(mf_D)
 mf_cD2D_log = log((both[, 2:48]+1) / (both[, 49:95]+1),2)
 rownames(mf_cD2D_log) = rownames(mf_D)
 
-cDD_PCoA_title <- paste("PCoA cDNA:DNA ratios when considering",ntaxa(merged_final),"OTUs")
+cDD_PCoA_title <- paste("PCoA cDNA:DNA ratios when considering",ntaxa(merged_final_toptaxa),"OTUs")
   
 # Betadiv pcoa Euclidean distance on log transformed ratio data
 cDD_norm_euc <- vegdist(t(mf_cD2D_log), method = "euclidean")  # calculates the Bray-Curtis Distances
@@ -600,8 +1366,8 @@ cDD_euc_axis2 <- paste("PCoA2:",cDD_euc_rel_eigen2_percent,"%")
 cDD_euc_axis3 <- paste("PCoA3:",cDD_euc_rel_eigen3_percent,"%")
 cDD_euc_axis4 <- paste("PCoA4:",cDD_euc_rel_eigen4_percent,"%")
 
-#pdf(file="/Users/vdenef/Documents/UMich/Papers/2015_Fujimoto_activity_Frontiers/Rplot_cDD_PCOA12_EUC.pdf", width= 20, height=15, pointsize= 14)
-cDD_pcoa_EUC12 <- ggplot(cDD_euc_pcoa4, aes(Axis.1, Axis.2 * -1, color = Season, shape = Station, size = Fraction, fill = Depth_Seas)) +
+pdf(file="Figures/Rplot_cDD_PCOA12_EUC_toptaxa.pdf", width= 20, height=15, pointsize= 14)
+cDD_pcoa_EUC12_toptaxa <- ggplot(cDD_euc_pcoa4, aes(Axis.1, Axis.2 * -1, color = Season, shape = Station, size = Fraction, fill = Depth_Seas)) +
   xlab(cDD_euc_axis1) + ylab(cDD_euc_axis2) + ggtitle(cDD_PCoA_title) +
   geom_point(alpha=0.9)  + theme_bw() + #ylim(1, -1) + xlim(1, -1) +
   scale_color_manual(name = "season", breaks=c("Sp", "Su",  "Fa"),
@@ -623,11 +1389,11 @@ cDD_pcoa_EUC12 <- ggplot(cDD_euc_pcoa4, aes(Axis.1, Axis.2 * -1, color = Season,
         legend.title = element_text(size=12, face="bold"),
         legend.text = element_text(size = 12),
         ###LEGEND TOP RIGHT CORNER
-        legend.position = "right"); cDD_pcoa_EUC12
-#  dev.off()
+        legend.position = "right"); cDD_pcoa_EUC12_toptaxa
+  dev.off()
 
-#pdf(file="/Users/vdenef/Documents/UMich/Papers/2015_Fujimoto_activity_Frontiers/Rplot_cDD_PCOA34_EUC.pdf", width= 20, height=15, pointsize= 14)
-cDD_pcoa_EUC34 <- ggplot(cDD_euc_pcoa4, aes(Axis.3, Axis.4 * -1, color = Season, shape = Station, size = Fraction, fill = Depth_Seas)) +
+pdf(file="Figures/Rplot_cDD_PCOA34_EUC_toptaxa.pdf", width= 20, height=15, pointsize= 14)
+cDD_pcoa_EUC34_toptaxa <- ggplot(cDD_euc_pcoa4, aes(Axis.3, Axis.4 * -1, color = Season, shape = Station, size = Fraction, fill = Depth_Seas)) +
   xlab(cDD_euc_axis3) + ylab(cDD_euc_axis4) + ggtitle(cDD_PCoA_title) +
   geom_point(alpha=0.9) + theme_bw() + #ylim(1, -1) + xlim(1, -1) +
   scale_color_manual(name = "season", breaks=c("Sp", "Su",  "Fa"),
@@ -649,12 +1415,12 @@ cDD_pcoa_EUC34 <- ggplot(cDD_euc_pcoa4, aes(Axis.3, Axis.4 * -1, color = Season,
         legend.title = element_text(size=12, face="bold"),
         legend.text = element_text(size = 12),
         ###LEGEND TOP RIGHT CORNER
-        legend.position = "right"); cDD_pcoa_EUC34
-#  dev.off()
+        legend.position = "right"); cDD_pcoa_EUC34_toptaxa
+  dev.off()
 
 #Let's run ADONIS using Michelle's function
-cDD_TAX=tax_table(merged_final)
-cDD_SAM=sample_data(subset_samples(subset_samples(merged_final,DNA == "cD"),names != "Su.EcD.110.DN"))
+cDD_TAX=tax_table(merged_final_toptaxa)
+cDD_SAM=sample_data(subset_samples(subset_samples(merged_final_toptaxa,DNA == "cD"),names != "Su.EcD.110.DN"))
 cDD_OTU=otu_table(mf_cD2D_log,taxa_are_rows=TRUE)
 cDD_physeq = phyloseq(cDD_OTU,cDD_TAX,cDD_SAM)
 phyloseq_to_adonis(cDD_physeq, distmat = cDD_norm_euc, dist = "euclidean","Fraction")
@@ -663,13 +1429,14 @@ phyloseq_to_adonis(cDD_physeq, distmat = cDD_norm_euc, dist = "euclidean","Stati
 phyloseq_to_adonis(cDD_physeq, distmat = cDD_norm_euc, dist = "euclidean","Depth_C")
 phyloseq_to_adonis(cDD_physeq, distmat = cDD_norm_euc, dist = "euclidean","DayNight")
 phyloseq_to_adonis(cDD_physeq, distmat = cDD_norm_euc, dist = "euclidean","Lake")
-formula<-c("Season","Fraction","Lake","Station","Depth_C","DayNight")
+formula<-c("Fraction","Season","Lake","Station","Depth_C","DayNight")
 phyloseq_to_adonis(cDD_physeq, distmat = cDD_norm_euc, dist = "euclidean",formula)
 
 ```
 
-```{r boxplots euclidean distances across seasons}
+```{r top 200 taxa boxplots euclidean distances across seasons}
 ####determine whether ratios in different habitats becomes increasingly different over seasonal succession
+
 #create dataframe with paired Euclidean dissimilarity and add metadata for compared samples
 cDD_norm_euc <- vegdist(t(mf_cD2D_log), method = "euc")  # calculates the Euclidean Distances
 cDD_euc <- melt(as.matrix(cDD_norm_euc), varnames = c("samp1", "samp2"))
@@ -990,6 +1757,7 @@ euc_frac_sigs <- euc_frac_try %>%
   select(season1, compfrac, siglabel) %>%
   distinct()
 
+pdf(file="Figures/Rplot_cDD_euc_frac_boxplot_toptaxa.pdf", width= 5, height=5, pointsize= 14)
 euc_frac_boxplot <- ggplot(euc_frac_try, aes(x = compfrac, y = value, fill = compfrac)) + geom_point(size = 2) +
   geom_boxplot() +
   geom_text(data = euc_frac_sigs, aes(label = siglabel, x = compfrac, y = 25), size = 4) +
@@ -1012,15 +1780,9 @@ euc_frac_boxplot <- ggplot(euc_frac_try, aes(x = compfrac, y = value, fill = com
                                  legend.text = element_text(size = 8),  #Set the legend text
                                  legend.position="none", #Default the legend position to the right
                                  plot.margin = unit(c(0.1, 0.1, 0.1, 0.1), "cm")); euc_frac_boxplot#top, right, bottom, left
+dev.off()
 
-###### 2. how does distance between cDNA:DNA in different stations change over the seasons 
-cDD_euc_stat_KW <- kruskal.test(cDD_euc_stat$value ~ as.factor(cDD_euc_stat$compstat)) 
-print(cDD_euc_stat_KW)  # show Kruskal Wallis result
-### Which samples are significantly different from each other?  
-cDD_euc_stat_KW_MC <- kruskalmc(cDD_euc_stat$value ~ as.factor(cDD_euc_stat$compstat))  ## Defaults to P < 0.05
-print(cDD_euc_stat_KW_MC)
-
-###### 3. how does distance between cDNA:DNA in different lakes change over the seasons 
+###### 2. how does distance between cDNA:DNA in different lakes change over the seasons 
 cDD_euc_lake_KW <- kruskal.test(cDD_euc_lake$value ~ as.factor(cDD_euc_lake$complake)) 
 print(cDD_euc_lake_KW)  # show Kruskal Wallis result
 ### Which samples are significantly different from each other?  
@@ -1044,6 +1806,7 @@ euc_lake_sigs <- euc_lake_try %>%
   select(season1, complake, siglabel) %>%
   distinct()
 
+pdf(file="Figures/Rplot_cDD_euc_lake_boxplot_toptaxa.pdf", width= 5, height=5, pointsize= 14)
 euc_lake_boxplot <- ggplot(euc_lake_try, aes(x = complake, y = value, fill = complake)) + geom_point(size = 2) +
   geom_boxplot() +
   geom_text(data = euc_lake_sigs, aes(label = siglabel, x = complake, y = 25), size = 4) +
@@ -1066,8 +1829,9 @@ euc_lake_boxplot <- ggplot(euc_lake_try, aes(x = complake, y = value, fill = com
                                  legend.text = element_text(size = 8),  #Set the legend text
                                  legend.position="none", #Default the legend position to the right
                                  plot.margin = unit(c(0.1, 0.1, 0.1, 0.1), "cm")); euc_lake_boxplot#top, right, bottom, left
+dev.off()
 
-###### 4. how does distance between cDNA:DNA in different depths change over the seasons 
+###### 3. how does distance between cDNA:DNA in different depths change over the seasons 
 cDD_euc_depth_KW <- kruskal.test(cDD_euc_depth$value ~ as.factor(cDD_euc_depth$compdepth)) 
 print(cDD_euc_depth_KW)  # show Kruskal Wallis result
 ### Which samples are significantly different from each other?  
@@ -1091,14 +1855,15 @@ euc_depth_sigs <- euc_depth_try %>%
   select(season1, compdepth, siglabel) %>%
   distinct()
 
+pdf(file="Figures/Rplot_cDD_euc_depth_boxplot_toptaxa.pdf", width= 5, height=5, pointsize= 14)
 euc_depth_boxplot <- ggplot(euc_depth_try, aes(x = compdepth, y = value, fill = compdepth)) + geom_point(size = 2) +
   geom_boxplot() +
   geom_text(data = euc_depth_sigs, aes(label = siglabel, x = compdepth, y = 25), size = 4) +
   scale_fill_manual(name = "", limits=c("Sp_SurfvsDeep", "Su_SurfvsDeep", "Fa_SurfvsDeep"), 
                      values = c("Sp_SurfvsDeep" = "grey","Su_SurfvsDeep" = "grey","Fa_SurfvsDeep" = "grey"))+
   scale_x_discrete(breaks=c("Sp_SurfvsDeep", "Su_SurfvsDeep", "Fa_SurfvsDeep"),
-                   labels=c("Spring\n(n=...)", "Summer\n(n=...)", "Fall\n(n=...)")) + 
-  xlab("Seasonal distance between cDNA:DNA ratios in surace and deep)") + ylab("Euclidean distance\nlog(cDNA:DNA)") + theme_bw() + #scale_fill_brewer(palette="Paired") + 
+                   labels=c("Spring\n(n=16)", "Summer\n(n=24)", "Fall\n(n=20)")) + 
+  xlab("Seasonal distance between cDNA:DNA ratios in surface and deep)") + ylab("Euclidean distance\nlog(cDNA:DNA)") + theme_bw() + #scale_fill_brewer(palette="Paired") + 
 #  facet_grid(. ~ season1, scale = "free", space = "free") +
   theme(plot.title = element_text(face="bold", size = 12),  #Set the plot title
                                  strip.text.x = element_blank(),  #Set the facet titles on x-axis 
@@ -1113,6 +1878,7 @@ euc_depth_boxplot <- ggplot(euc_depth_try, aes(x = compdepth, y = value, fill = 
                                  legend.text = element_text(size = 8),  #Set the legend text
                                  legend.position="none", #Default the legend position to the right
                                  plot.margin = unit(c(0.1, 0.1, 0.1, 0.1), "cm")); euc_depth_boxplot#top, right, bottom, left
+dev.off()
 ```
 
 ```{r identify significantly more active than present OTUs}
@@ -1292,337 +2058,10 @@ deseq_otu_DNAcDNA_noMLB_SuFaFL$Phylum_plot <- Phylum_temp
 deseq_otu_DNAcDNA_SpvsSuFa<-rbind(deseq_otu_DNAcDNA_noMLB_SpFL,deseq_otu_DNAcDNA_noMLB_SpPA,deseq_otu_DNAcDNA_noMLB_SuFaFL,deseq_otu_DNAcDNA_noMLB_SuFaPA)
 deseq_otu_DNAcDNA_SpvsSuFa_plot <- plot_deSEQ_combo(deseq_otu_DNAcDNA_SpvsSuFa, "OTU cDNA:DNA Sp vs SuFa")
 deseq_otu_DNAcDNA_SpvsSuFa_plot
-```
 
-```{r cDNA vs DNA overlap}
-########## cDNA vs DNA overlap of OTUs ########## 
-# All cDNA and DNA sample combined in 2 pools of otus
-#noscale_merge_allDvscD <- merge_samples_mean(physeq, "DNA", "floor")
-#noscale_merge_allDvscD <- prune_taxa(taxa_sums(noscale_merge_allDvscD) > 0, noscale_merge_allDvscD)
-#View(data.frame(otu_table(noscale_merge_allDvscD)))
-
-# in case you want to use the raw_merged data (e.g., when using rarefied data), uncomment next 7 lines of code 
-#merged_final <-raw_merged
-#data_final_df <- read.table("/Users/vdenef/Documents/UMich/Papers/2015_Fujimoto_activity_Frontiers/Data_analysis/LMSampleDescription_merged_final.tsv", sep="\t",header=T,row.names=1,as.is=T)
-#data_final_df$names<-row.names(data_final_df)
-#data_final <- sample_data(data_final_df)  # Metadata in our phyloseq object
-#temp_otu <- otu_table(merged_final)
-#temp_taxa <- tax_table(merged_final)
-#merged_final <- merge_phyloseq(temp_otu, temp_taxa, data_final)
-
-# first make a dataframe that has sample name and list of comma-delimited otus in it
-temp <- otu_table(merged_final)
-otu_list <- vector(mode="character", length=length(colnames(temp)))
-for(i in 1:length(colnames(temp))){
-  otu_list[i]<-as.character(colnames(temp)[i])}
-otu_list_df <- data.frame(otu_list,otu_list,stringsAsFactors=FALSE)
-colnames(otu_list_df) <- c("sample","otu_list")
-for(i in 1:length(rownames(otu_list_df))){
-  otu_list_df[i,2]<-toString(rownames(temp)[temp[,otu_list_df[i,1]] > 0],sep=",")}
-
-## now make dataframe that adds group to compare in column 1, samples to compare in column 2 and 3, their corresponding otus in 4 and 5, then add overlap, unique cDNA, unique DNA in column 6, 7, and 8
-#create new phyloseq object to manipulate
-temp_data <- sample_data(merged_final)
-temp_otu <- otu_table(merged_final)
-temp_taxa <- tax_table(merged_final)
-temp_data$Sample = rownames(temp_data)
-temp_phy <- merge_phyloseq(temp_otu, temp_taxa, temp_data)
-
-#create new dataframe to store otu overlap data (cDNA vs DNA)
-compare_df<-data.frame(unique(sample_data(subset_samples(temp_phy,Sample != "Su.EcD.110.DN"))$Group_cDvsD),rownames(sample_data(subset_samples(subset_samples(temp_phy, DNA == "cD"), Sample != "Su.EcD.110.DN"))),rownames(sample_data(subset_samples(temp_phy, DNA == "D"))),sample_data(subset_samples(temp_phy, DNA == "D"))$Season,sample_data(subset_samples(temp_phy, DNA == "D"))$Fraction,sample_data(subset_samples(temp_phy, DNA == "D"))$Station,sample_data(subset_samples(temp_phy, DNA == "D"))$Depth_C)
-colnames(compare_df) <- c("group","cDNA","DNA","Season","Fraction","Station","Depth_C")
-colnames(otu_list_df) <- c("cDNA","otu_cDNA")
-compare_df <- merge(compare_df,otu_list_df,by="cDNA")
-colnames(otu_list_df) <- c("DNA","otu_DNA")
-compare_df <- merge(compare_df,otu_list_df,by="DNA")
-colnames(otu_list_df) <- c("sample","otu_list")
-for(i in 1:length(rownames(compare_df))){
-  compare_df[i,10]<-length(intersect(unlist(strsplit(compare_df[i,]$otu_cDNA,split=", ")), unlist(strsplit(compare_df[i,]$otu_DNA,split=", "))))
-  compare_df[i,11] <- length(setdiff(unlist(strsplit(compare_df[i,]$otu_cDNA,split=", ")), unlist(strsplit(compare_df[i,]$otu_DNA,split=", "))))
-  compare_df[i,12] <- length(setdiff(unlist(strsplit(compare_df[i,]$otu_DNA,split=", ")), unlist(strsplit(compare_df[i,]$otu_cDNA,split=", "))))
-  compare_df[i,13] <- compare_df[i,10]/sum(compare_df[i,10],compare_df[i,11],compare_df[i,12])
-  compare_df[i,14] <- compare_df[i,11]/sum(compare_df[i,10],compare_df[i,11],compare_df[i,12])
-  compare_df[i,15] <- compare_df[i,12]/sum(compare_df[i,10],compare_df[i,11],compare_df[i,12])
-}
-colnames(compare_df) <- c("DNA","cDNA","group","Season","Fraction","Station","Depth_C","otu_cDNA","otu_DNA","Shared","Uniq_cDNA","Uniq_DNA","Shared_rel","Uniq_cDNA_rel","Uniq_DNA_rel")
-
-#View(data.frame(compare_df)) 
-
-
-
-########## rep1 vs rep2 overlap of OTUs ########## 
-# to subset to OTUs included after merging
-#physeq_toptaxa = prune_taxa(taxa_names(merged_final_toptaxa),physeq)
-#physeq_merged = prune_taxa(taxa_names(merged_final),physeq)
-#physeq<-physeq_toptaxa
-#physeq<-physeq_merged
-
-# first make a dataframe that has sample name and list of comma-delimited otus in it
-# we will do OTU overlap analysis only for OTUs witheld for cDNA-DNA overlap analysis
-physeq_reps = prune_taxa(taxa_names(merged_final),physeq)
-rep_temp <- otu_table(physeq_reps)
-rep_otu_list <- vector(mode="character", length=length(colnames(rep_temp)))
-for(i in 1:length(colnames(rep_temp))){
-  rep_otu_list[i]<-as.character(colnames(rep_temp)[i])}
-rep_otu_list_df <- data.frame(rep_otu_list,rep_otu_list,stringsAsFactors=FALSE)
-colnames(rep_otu_list_df) <- c("sample","otu_list")
-for(i in 1:length(rownames(rep_otu_list_df))){
-  rep_otu_list_df[i,2]<-toString(rownames(rep_temp)[rep_temp[,rep_otu_list_df[i,1]] > 0],sep=",")}
-
-## now make dataframe that adds group to compare in column 1, samples to compare in column 2 and 3, their corresponding otus in 4 and 5, then add overlap, unique rep1, unique rep2 in column 6, 7, and 8
-#create new phyloseq object to manipulate
-rep_temp_data <- sample_data(physeq_reps)
-rep_temp_otu <- otu_table(physeq_reps)
-rep_temp_taxa <- tax_table(physeq_reps)
-rep_temp_data$Sample = rownames(rep_temp_data)
-rep_temp_phy <- merge_phyloseq(rep_temp_otu, rep_temp_taxa, rep_temp_data)
-rep_group_sums <- as.matrix(table(sample_data(rep_temp_phy)[ ,"Group"]))[,1]
-reps <- as.data.frame(rep_group_sums)
-reps$Group <- rownames(reps)
-rep_temp_data <- data.frame(rep_temp_data)
-rep_temp_data <-  merge(rep_temp_data,reps,by="Group")
-rownames(rep_temp_data) = rep_temp_data$Sample
-rep_temp_data = sample_data(rep_temp_data)
-rep_temp_phy <- merge_phyloseq(rep_temp_otu, rep_temp_taxa, rep_temp_data)
-
-#create new dataframe to store otu overlap data (cDNA vs DNA)
-rep_compare_df<-data.frame(unique(sample_data(subset_samples(rep_temp_phy,rep_group_sums != "1"))$Group),rownames(sample_data(subset_samples(subset_samples(rep_temp_phy, Replicates == "2"), rep_group_sums != "1"))),rownames(sample_data(subset_samples(subset_samples(rep_temp_phy, Replicates == "1"), rep_group_sums != "1"))),sample_data(subset_samples(subset_samples(rep_temp_phy,rep_group_sums != "1"),Replicates == "2"))$Season,sample_data(subset_samples(subset_samples(rep_temp_phy,rep_group_sums != "1"),Replicates == "2"))$Fraction,sample_data(subset_samples(subset_samples(rep_temp_phy,rep_group_sums != "1"),Replicates == "2"))$Station,sample_data(subset_samples(subset_samples(rep_temp_phy,rep_group_sums != "1"),Replicates == "2"))$Depth_C)
-colnames(rep_compare_df) <- c("group","rep2","rep1","Season","Fraction","Station","Depth_C")
-colnames(rep_otu_list_df) <- c("rep2","otu_rep2")
-rep_compare_df <- merge(rep_compare_df,rep_otu_list_df,by="rep2")
-colnames(rep_otu_list_df) <- c("rep1","otu_rep1")
-rep_compare_df <- merge(rep_compare_df,rep_otu_list_df,by="rep1")
-colnames(rep_otu_list_df) <- c("sample","otu_list")
-for(i in 1:length(rownames(rep_compare_df))){
-  rep_compare_df[i,10]<-length(intersect(unlist(strsplit(rep_compare_df[i,]$otu_rep2,split=", ")), unlist(strsplit(rep_compare_df[i,]$otu_rep1,split=", "))))
-  rep_compare_df[i,11] <- length(setdiff(unlist(strsplit(rep_compare_df[i,]$otu_rep2,split=", ")), unlist(strsplit(rep_compare_df[i,]$otu_rep1,split=", "))))
-  rep_compare_df[i,12] <- length(setdiff(unlist(strsplit(rep_compare_df[i,]$otu_rep1,split=", ")), unlist(strsplit(rep_compare_df[i,]$otu_rep2,split=", "))))
-  rep_compare_df[i,13] <- rep_compare_df[i,10]/sum(rep_compare_df[i,10],rep_compare_df[i,11],rep_compare_df[i,12])
-  rep_compare_df[i,14] <- rep_compare_df[i,11]/sum(rep_compare_df[i,10],rep_compare_df[i,11],rep_compare_df[i,12])
-  rep_compare_df[i,15] <- rep_compare_df[i,12]/sum(rep_compare_df[i,10],rep_compare_df[i,11],rep_compare_df[i,12])
-}
-colnames(rep_compare_df) <- c("rep1","rep2","group","Season","Fraction","Station","Depth_C","otu_rep2","otu_rep1","Shared","Uniq_rep2","Uniq_rep1","Shared_rel","Uniq_rep2_rel","Uniq_rep1_rel")
-
-#View(data.frame(rep_compare_df)) 
-
-## now make boxplots showing fraction OTUs shared bewteen cDNA and DNA datasets relative to between replicates
-#combine dataframes cDNA vs DNA overlap and replicates overlap
-shared_df <- compare_df[,c("group","Shared","Shared_rel","Season","Fraction","Station","Depth_C")]
-rep_shared_df <- rep_compare_df[,c("group","Shared","Shared_rel","Season","Fraction","Station","Depth_C")]
-
-#replace season, fraction, station, and depth fields with *_rep so that they can be differentiated in combined boxplot
-rep_shared_df$Season_new[rep_shared_df$Season=="Sp"]<-"Sp_rep"
-rep_shared_df$Season_new[rep_shared_df$Season=="Su"]<-"Su_rep"
-rep_shared_df$Season_new[rep_shared_df$Season=="Fa"]<-"Fa_rep"
-rep_shared_df$Station_new[rep_shared_df$Station=="MLB"]<-"MLB_rep"
-rep_shared_df$Station_new[rep_shared_df$Station=="MM15"]<-"MM15_rep"
-rep_shared_df$Station_new[rep_shared_df$Station=="MM110"]<-"MM110_rep"
-rep_shared_df$Fraction_new[rep_shared_df$Fraction=="E"]<-"E_rep"
-rep_shared_df$Fraction_new[rep_shared_df$Fraction=="B"]<-"B_rep"
-rep_shared_df$Depth_C_new[rep_shared_df$Depth_C=="S"]<-"S_rep"
-rep_shared_df$Depth_C_new[rep_shared_df$Depth_C=="M"]<-"M_rep"
-rep_shared_df$Depth_C_new[rep_shared_df$Depth_C=="D"]<-"D_rep"
-rep_shared_df <- rep_shared_df[,c("group","Shared","Shared_rel","Season_new","Fraction_new","Station_new","Depth_C_new")]
-colnames(rep_shared_df) <- c("group","Shared","Shared_rel","Season","Fraction","Station","Depth_C")
-#combining into 1 dataframe
-shared_DcD_reps <- rbind(shared_df,rep_shared_df)
-
-
-######1. how does overlap between cDNA:DNA change over the seasons relative to overlap between replicates 
-overlap_title <- paste("Overlap cDNA and DNA and between replicates when considering ",ntaxa(merged_final)," OTUs")
-
-shared_DcD_reps_Season_KW <- kruskal.test(shared_DcD_reps$Shared_rel ~ as.factor(shared_DcD_reps$Season)) 
-print(shared_DcD_reps_Season_KW)  # show Kruskal Wallis result
-### Which samples are significantly different from each other?  
-shared_DcD_reps_Season_KW_MC <- kruskalmc(shared_DcD_reps$Shared_rel ~ as.factor(shared_DcD_reps$Season))  ## Defaults to P < 0.05
-print(shared_DcD_reps_Season_KW_MC)
-
-### Test to find the letters to represent significance in a plot
-shared_DcD_reps_Season_test <- shared_DcD_reps_Season_KW_MC$dif.com$difference # select logical vector
-names(shared_DcD_reps_Season_test) <- row.names(shared_DcD_reps_Season_KW_MC$dif.com) # add comparison names
-# create a list with "homogenous groups" coded by letter
-shared_DcD_reps_Season_letters <- multcompLetters(shared_DcD_reps_Season_test, compare="<", threshold=0.05, 
-                                Letters=c(letters, LETTERS, "."), reversed = FALSE)
-###  Extract the values from the multcompLetters object
-shared_DcD_reps_Season_sigs_dataframe <-  data.frame(as.vector(names(shared_DcD_reps_Season_letters$Letters)), as.vector(shared_DcD_reps_Season_letters$Letters))
-colnames(shared_DcD_reps_Season_sigs_dataframe) <- c("Season", "siglabel")
-shared_DcD_reps_Season_try <- merge(shared_DcD_reps, shared_DcD_reps_Season_sigs_dataframe, by = "Season")
-
-shared_DcD_reps_Season_try$Season <-factor(shared_DcD_reps_Season_try$Season,levels=c( "Sp", "Sp_rep", "Su", "Su_rep", "Fa", "Fa_rep"))
-
-shared_DcD_reps_Season_sigs <- shared_DcD_reps_Season_try %>%
-  select(Season, Season, siglabel) %>%
-  distinct()
-
-shared_DcD_reps_Season_boxplot <- ggplot(shared_DcD_reps_Season_try, aes(x = Season, y = Shared_rel, fill = Season)) + geom_point(size = 2) +
-  geom_boxplot()  + ggtitle(overlap_title) +
-  geom_text(data = shared_DcD_reps_Season_sigs, aes(label = siglabel, x = Season, y = .95), size = 4) +
-  scale_fill_manual(name = "", limits=c("Sp", "Sp_rep", "Su", "Su_rep", "Fa", "Fa_rep"), 
-                     values = c("Sp" = "grey","Su" = "grey","Fa" = "grey","Sp_rep" = "grey","Su_rep" = "grey","Fa_rep" = "grey"))+
-  scale_x_discrete(breaks=c("Sp", "Sp_rep", "Su", "Su_rep", "Fa", "Fa_rep"),
-                   labels=c("Spring\ncD-D\n(n=14)","Spring\nrep1-2\n(n=21)", "Summer\ncD-D\n(n=17)", "Summer\nrep1-2\n(n=31)","Fall\ncD-D\n(n=16)","Fall\nrep1-2\n(n=27)")) + 
-  xlab("OTU overlap comparison)") + ylab("Fraction of OTUs shared") + theme_bw() + #scale_fill_brewer(palette="Paired") + 
-#  facet_grid(. ~ season1, scale = "free", space = "free") +
-  theme(plot.title = element_text(face="bold", size = 12),  #Set the plot title
-                                 strip.text.x = element_blank(),  #Set the facet titles on x-axis 
-                                 strip.text.y = element_blank(),  #Set the facet titles on x-axis 
-                                 strip.background = element_blank(),  #Set the facet background to no background
-                                 axis.title.x = element_text(face="bold", size=10),  #Set the x-axis title
-                                 axis.title.y = element_text(face="bold", size=10),  #Set the y-axis title
-                                 axis.text.x = element_text(angle=0, colour = "black", 
-                                                            vjust=1, hjust = 1, size=10),  #Set the x-axis labels
-                                 axis.text.y = element_text(colour = "black", size=10),  #Set the y-axis labels
-                                 legend.title = element_text(size = 8, face="bold"),  #Set the legend title 
-                                 legend.text = element_text(size = 8),  #Set the legend text
-                                 legend.position="none", #Default the legend position to the right
-                                 plot.margin = unit(c(0.1, 0.1, 0.1, 0.1), "cm")); shared_DcD_reps_Season_boxplot#top, right, bottom, left
-
-######2. how does overlap between cDNA:DNA change over the fractions relative to overlap between replicates 
-overlap_title <- paste("Overlap cDNA and DNA and between replicates when considering ",ntaxa(merged_final)," OTUs")
-
-shared_DcD_reps_Fraction_KW <- kruskal.test(shared_DcD_reps$Shared_rel ~ as.factor(shared_DcD_reps$Fraction)) 
-print(shared_DcD_reps_Fraction_KW)  # show Kruskal Wallis result
-### Which samples are significantly different from each other?  
-shared_DcD_reps_Fraction_KW_MC <- kruskalmc(shared_DcD_reps$Shared_rel ~ as.factor(shared_DcD_reps$Fraction))  ## Defaults to P < 0.05
-print(shared_DcD_reps_Fraction_KW_MC)
-
-### Test to find the letters to represent significance in a plot
-shared_DcD_reps_Fraction_test <- shared_DcD_reps_Fraction_KW_MC$dif.com$difference # select logical vector
-names(shared_DcD_reps_Fraction_test) <- row.names(shared_DcD_reps_Fraction_KW_MC$dif.com) # add comparison names
-# create a list with "homogenous groups" coded by letter
-shared_DcD_reps_Fraction_letters <- multcompLetters(shared_DcD_reps_Fraction_test, compare="<", threshold=0.05, 
-                                Letters=c(letters, LETTERS, "."), reversed = FALSE)
-###  Extract the values from the multcompLetters object
-shared_DcD_reps_Fraction_sigs_dataframe <-  data.frame(as.vector(names(shared_DcD_reps_Fraction_letters$Letters)), as.vector(shared_DcD_reps_Fraction_letters$Letters))
-colnames(shared_DcD_reps_Fraction_sigs_dataframe) <- c("Fraction", "siglabel")
-shared_DcD_reps_Fraction_try <- merge(shared_DcD_reps, shared_DcD_reps_Fraction_sigs_dataframe, by = "Fraction")
-
-shared_DcD_reps_Fraction_try$Fraction <-factor(shared_DcD_reps_Fraction_try$Fraction,levels=c( "B", "B_rep", "E", "E_rep"))
-
-shared_DcD_reps_Fraction_sigs <- shared_DcD_reps_Fraction_try %>%
-  select(Fraction, Fraction, siglabel) %>%
-  distinct()
-
-shared_DcD_reps_Fraction_boxplot <- ggplot(shared_DcD_reps_Fraction_try, aes(x = Fraction, y = Shared_rel, fill = Fraction)) + geom_point(size = 2) +
-  geom_boxplot()  + ggtitle(overlap_title) +
-  geom_text(data = shared_DcD_reps_Fraction_sigs, aes(label = siglabel, x = Fraction, y = .95), size = 4) +
-  scale_fill_manual(name = "", limits=c("B", "B_rep", "E", "E_rep"), 
-                     values = c("B" = "grey","B_rep" = "grey","E" = "grey","E_rep" = "grey"))+
-  scale_x_discrete(breaks=c("B", "B_rep", "E", "E_rep"),
-                   labels=c("Free\ncD-D\n(n=24)","Free\nrep1-2\n(n=37)", "Particle\ncD-D\n(n=23)", "Particle\nrep1-2\n(n=42)")) + 
-  xlab("OTU overlap comparison)") + ylab("Fraction of OTUs shared") + theme_bw() + 
-  theme(plot.title = element_text(face="bold", size = 12),  #Set the plot title
-                                 strip.text.x = element_blank(),  #Set the facet titles on x-axis 
-                                 strip.text.y = element_blank(),  #Set the facet titles on x-axis 
-                                 strip.background = element_blank(),  #Set the facet background to no background
-                                 axis.title.x = element_text(face="bold", size=10),  #Set the x-axis title
-                                 axis.title.y = element_text(face="bold", size=10),  #Set the y-axis title
-                                 axis.text.x = element_text(angle=0, colour = "black", 
-                                                            vjust=1, hjust = 1, size=10),  #Set the x-axis labels
-                                 axis.text.y = element_text(colour = "black", size=10),  #Set the y-axis labels
-                                 legend.title = element_text(size = 8, face="bold"),  #Set the legend title 
-                                 legend.text = element_text(size = 8),  #Set the legend text
-                                 legend.position="none", #Default the legend position to the right
-                                 plot.margin = unit(c(0.1, 0.1, 0.1, 0.1), "cm")); shared_DcD_reps_Fraction_boxplot#top, right, bottom, left
-
-######3. how does overlap between cDNA:DNA change over the stations relative to overlap between replicates 
-overlap_title <- paste("Overlap cDNA and DNA and between replicates when considering ",ntaxa(merged_final)," OTUs")
-
-shared_DcD_reps_Station_KW <- kruskal.test(shared_DcD_reps$Shared_rel ~ as.factor(shared_DcD_reps$Station)) 
-print(shared_DcD_reps_Station_KW)  # show Kruskal Wallis result
-### Which samples are significantly different from each other?  
-shared_DcD_reps_Station_KW_MC <- kruskalmc(shared_DcD_reps$Shared_rel ~ as.factor(shared_DcD_reps$Station))  ## Defaults to P < 0.05
-print(shared_DcD_reps_Station_KW_MC)
-
-### Test to find the letters to represent significance in a plot
-shared_DcD_reps_Station_test <- shared_DcD_reps_Station_KW_MC$dif.com$difference # select logical vector
-names(shared_DcD_reps_Station_test) <- row.names(shared_DcD_reps_Station_KW_MC$dif.com) # add comparison names
-# create a list with "homogenous groups" coded by letter
-shared_DcD_reps_Station_letters <- multcompLetters(shared_DcD_reps_Station_test, compare="<", threshold=0.05, 
-                                Letters=c(letters, LETTERS, "."), reversed = FALSE)
-###  Extract the values from the multcompLetters object
-shared_DcD_reps_Station_sigs_dataframe <-  data.frame(as.vector(names(shared_DcD_reps_Station_letters$Letters)), as.vector(shared_DcD_reps_Station_letters$Letters))
-colnames(shared_DcD_reps_Station_sigs_dataframe) <- c("Station", "siglabel")
-shared_DcD_reps_Station_try <- merge(shared_DcD_reps, shared_DcD_reps_Station_sigs_dataframe, by = "Station")
-
-shared_DcD_reps_Station_try$Station <-factor(shared_DcD_reps_Station_try$Station,levels=c( "MLB", "MLB_rep", "MM15", "MM15_rep", "MM110", "MM110_rep"))
-
-shared_DcD_reps_Station_sigs <- shared_DcD_reps_Station_try %>%
-  select(Station, Station, siglabel) %>%
-  distinct()
-
-shared_DcD_reps_Station_boxplot <- ggplot(shared_DcD_reps_Station_try, aes(x = Station, y = Shared_rel, fill = Station)) + geom_point(size = 2) +
-  geom_boxplot()  + ggtitle(overlap_title) +
-  geom_text(data = shared_DcD_reps_Station_sigs, aes(label = siglabel, x = Station, y = .95), size = 4) +
-  scale_fill_manual(name = "", limits=c("MLB", "MLB_rep", "MM15", "MM15_rep", "MM110", "MM110_rep"), 
-                     values = c("MLB" = "grey","MLB_rep" = "grey","MM15" = "grey","MM15_rep" = "grey","MM110" = "grey","MM110_rep" = "grey"))+
-  scale_x_discrete(breaks=c("MLB", "MLB_rep", "MM15", "MM15_rep", "MM110", "MM110_rep"),
-                   labels=c("MLB\ncD-D\n(n=10)","MLB\nrep1-2\n(n=10)", "LM15\ncD-D\n(n=18)", "LM15\nrep1-2\n(n=33)", "LM110\ncD-D\n(n=19)", "LM110\nrep1-2\n(n=36)")) + 
-  xlab("OTU overlap comparison)") + ylab("Fraction of OTUs shared") + theme_bw() + 
-  theme(plot.title = element_text(face="bold", size = 12),  #Set the plot title
-                                 strip.text.x = element_blank(),  #Set the facet titles on x-axis 
-                                 strip.text.y = element_blank(),  #Set the facet titles on x-axis 
-                                 strip.background = element_blank(),  #Set the facet background to no background
-                                 axis.title.x = element_text(face="bold", size=10),  #Set the x-axis title
-                                 axis.title.y = element_text(face="bold", size=10),  #Set the y-axis title
-                                 axis.text.x = element_text(angle=0, colour = "black", 
-                                                            vjust=1, hjust = 1, size=10),  #Set the x-axis labels
-                                 axis.text.y = element_text(colour = "black", size=10),  #Set the y-axis labels
-                                 legend.title = element_text(size = 8, face="bold"),  #Set the legend title 
-                                 legend.text = element_text(size = 8),  #Set the legend text
-                                 legend.position="none", #Default the legend position to the right
-                                 plot.margin = unit(c(0.1, 0.1, 0.1, 0.1), "cm")); shared_DcD_reps_Station_boxplot#top, right, bottom, left
-
-######4. how does overlap between cDNA:DNA change over the depths relative to overlap between replicates 
-overlap_title <- paste("Overlap cDNA and DNA and between replicates when considering ",ntaxa(merged_final)," OTUs")
-
-shared_DcD_reps_Depth_C_KW <- kruskal.test(shared_DcD_reps$Shared_rel ~ as.factor(shared_DcD_reps$Depth_C)) 
-print(shared_DcD_reps_Depth_C_KW)  # show Kruskal Wallis result
-### Which samples are significantly different from each other?  
-shared_DcD_reps_Depth_C_KW_MC <- kruskalmc(shared_DcD_reps$Shared_rel ~ as.factor(shared_DcD_reps$Depth_C))  ## Defaults to P < 0.05
-print(shared_DcD_reps_Depth_C_KW_MC)
-
-### Test to find the letters to represent significance in a plot
-shared_DcD_reps_Depth_C_test <- shared_DcD_reps_Depth_C_KW_MC$dif.com$difference # select logical vector
-names(shared_DcD_reps_Depth_C_test) <- row.names(shared_DcD_reps_Depth_C_KW_MC$dif.com) # add comparison names
-# create a list with "homogenous groups" coded by letter
-shared_DcD_reps_Depth_C_letters <- multcompLetters(shared_DcD_reps_Depth_C_test, compare="<", threshold=0.05, 
-                                Letters=c(letters, LETTERS, "."), reversed = FALSE)
-###  Extract the values from the multcompLetters object
-shared_DcD_reps_Depth_C_sigs_dataframe <-  data.frame(as.vector(names(shared_DcD_reps_Depth_C_letters$Letters)), as.vector(shared_DcD_reps_Depth_C_letters$Letters))
-colnames(shared_DcD_reps_Depth_C_sigs_dataframe) <- c("Depth_C", "siglabel")
-shared_DcD_reps_Depth_C_try <- merge(shared_DcD_reps, shared_DcD_reps_Depth_C_sigs_dataframe, by = "Depth_C")
-
-shared_DcD_reps_Depth_C_try$Depth_C <-factor(shared_DcD_reps_Depth_C_try$Depth_C,levels=c( "S", "S_rep", "M", "M_rep", "D", "D_rep"))
-
-shared_DcD_reps_Depth_C_sigs <- shared_DcD_reps_Depth_C_try %>%
-  select(Depth_C, Depth_C, siglabel) %>%
-  distinct()
-
-shared_DcD_reps_Depth_C_boxplot <- ggplot(shared_DcD_reps_Depth_C_try, aes(x = Depth_C, y = Shared_rel, fill = Depth_C)) + geom_point(size = 2) +
-  geom_boxplot()  + ggtitle(overlap_title) +
-  geom_text(data = shared_DcD_reps_Depth_C_sigs, aes(label = siglabel, x = Depth_C, y = .95), size = 4) +
-  scale_fill_manual(name = "", limits=c("S", "S_rep", "M", "M_rep", "D", "D_rep"), 
-                     values = c("S" = "grey","S_rep" = "grey","M" = "grey","M_rep" = "grey","D" = "grey","D_rep" = "grey"))+
-  scale_x_discrete(breaks=c("S", "S_rep", "M", "M_rep", "D", "D_rep"),
-                   labels=c("Surface\ncD-D\n(n=30)","Surface\nrep1-2\n(n=51)", "Chl Max\ncD-D\n(n=2)", "Chl Max\nrep1-2\n(n=4)", "Deep\ncD-D\n(n=15)", "Deep\nrep1-2\n(n=24)")) + 
-  xlab("OTU overlap comparison)") + ylab("Fraction of OTUs shared") + theme_bw() + 
-  theme(plot.title = element_text(face="bold", size = 12),  #Set the plot title
-                                 strip.text.x = element_blank(),  #Set the facet titles on x-axis 
-                                 strip.text.y = element_blank(),  #Set the facet titles on x-axis 
-                                 strip.background = element_blank(),  #Set the facet background to no background
-                                 axis.title.x = element_text(face="bold", size=10),  #Set the x-axis title
-                                 axis.title.y = element_text(face="bold", size=10),  #Set the y-axis title
-                                 axis.text.x = element_text(angle=0, colour = "black", 
-                                                            vjust=1, hjust = 1, size=10),  #Set the x-axis labels
-                                 axis.text.y = element_text(colour = "black", size=10),  #Set the y-axis labels
-                                 legend.title = element_text(size = 8, face="bold"),  #Set the legend title 
-                                 legend.text = element_text(size = 8),  #Set the legend text
-                                 legend.position="none", #Default the legend position to the right
-                                 plot.margin = unit(c(0.1, 0.1, 0.1, 0.1), "cm")); shared_DcD_reps_Depth_C_boxplot#top, right, bottom, left
 ###############################################################
 ############## END OF LM13_Activity Analyses ##################
 ###############################################################
-
 ```
+
 
