@@ -34,7 +34,7 @@ library(multcompView)
 library(RColorBrewer)
 
 #Set working directory 
-#setwd("/Users/vdenef/Documents/UMich/Digital_Notebooks/GitHub/LM13_Activity_GH/LM13_Activity/")
+setwd("/Users/vdenef/Documents/UMich/Digital_Notebooks/GitHub/LM13_Activity_GH/LM13_Activity/")
 
 # Source written functions in the files made by Marian and Michelle 
 source("/Users/vdenef/Documents/UMich/Digital_Notebooks/GitHub/LM13_Activity_GH/LM13_Activity/LM13_Activity_function.R")
@@ -54,7 +54,7 @@ set_ggtheme <- theme_set(theme_bw() +
                                  legend.position="right"))  #Default the legend position to the right
 
 #set taxonomy plotting colors
-group.colors <- c(Acidobacteria = "grey26", Actinobacteria = "royalblue", Alphaproteobacteria = "plum2", Armatimonadetes = "red", Bacteroidetes = "darkorange", "BD1-5" = "chartreuse", Betaproteobacteria = "slateblue2", Caldiserica = "black","Candidate_division_BRC1" = "violetred4", "Candidate_division_JS1" = "aquamarine1", "Candidate_division_OD1" = "#6DDE88", "Candidate_division_OP3" = "hotpink", "Candidate_division_OP8" = "goldenrod1", "Candidate_division_OP11" = "chocolate4", "Candidate_division_SR1" = "tan3", "Candidate_division_TM7" = "skyblue1", "Candidate_division_WS3" = "magenta", Chlamydiae="violet", Chlorobi="cyan2", Chloroflexi="darkgreen", Cyanobacteria = "chartreuse3", Deferribacteres = "slateblue3", "Deinococcus-Thermus" = "violetred", Dictyoglomi = "cornsilk4", Deltaproteobacteria = "deepskyblue", Elusimicrobia = "yellow3", Epsilonproteobacteria = "lightskyblue", Fibrobacteres = "darkred", Firmicutes = "blue4", FGL7S = "palevioletred1", Fusobacteria = "slateblue1", Gammaproteobacteria = "steelblue4", Gemmatimonadetes="black", GOUTA4 = "plum1", "Hyd24-12" = "sienna2", JTB23 = "seashell2", Nitrospirae = "yellow1", "NPL-UPA2"="#652926", OC31 = "mediumpurple4", Planctomycetes = "mediumorchid3", Proteobacteria = "chocolate1", "SHA-109" = "lightsalmon3", SM2F11 = "lightskyblue2", SPOTSOCT00m83 = "orangered", Spirochaetae = "gold3", Tenericutes="pink", Thermotogae = "chocolate1", TA06 = "lightslateblue",TA18 = "rosybrown3", TM6 = "olivedrab", unclassified = "grey", Verrucomicrobia = "purple4", "WCHB1-60" = "palegreen", Other = "darkgrey")
+group.colors <- c(Acidobacteria = "grey26", Actinobacteria = "royalblue", Alphaproteobacteria = "steelblue4", Armatimonadetes = "red", Bacteroidetes = "darkred", "BD1-5" = "chartreuse", Betaproteobacteria = "steelblue4", Caldiserica = "black","Candidate_division_BRC1" = "violetred4", "Candidate_division_JS1" = "aquamarine1", "Candidate_division_OD1" = "#6DDE88", "Candidate_division_OP3" = "hotpink", "Candidate_division_OP8" = "goldenrod1", "Candidate_division_OP11" = "chocolate4", "Candidate_division_SR1" = "tan3", "Candidate_division_TM7" = "skyblue1", "Candidate_division_WS3" = "magenta", Chlamydiae="violet", Chlorobi="cyan2", Chloroflexi="darkgreen", Cyanobacteria = "chartreuse3", Deferribacteres = "slateblue3", "Deinococcus-Thermus" = "violetred", Dictyoglomi = "cornsilk4", Deltaproteobacteria = "steelblue4", Elusimicrobia = "yellow3", Epsilonproteobacteria = "steelblue4", Fibrobacteres = "darkred", Firmicutes = "blue4", FGL7S = "palevioletred1", Fusobacteria = "slateblue1", Gammaproteobacteria = "steelblue4", Gemmatimonadetes="black", GOUTA4 = "plum1", "Hyd24-12" = "sienna2", JTB23 = "seashell2", Nitrospirae = "yellow1", "NPL-UPA2"="#652926", OC31 = "mediumpurple4", Planctomycetes = "mediumorchid3", Proteobacteria = "steelblue4", "SHA-109" = "lightsalmon3", SM2F11 = "lightskyblue2", SPOTSOCT00m83 = "orangered", Spirochaetae = "gold3", Tenericutes="pink", Thermotogae = "chocolate1", TA06 = "lightslateblue",TA18 = "rosybrown3", TM6 = "olivedrab", unclassified = "grey", Verrucomicrobia = "purple4", "WCHB1-60" = "palegreen", Other = "darkgrey", Cytophagia = "darkred", Sphingobacteria = "darkred",Flavobacteria = "darkred")
 ```
 
 ```{r data import and normalization}
@@ -63,21 +63,21 @@ group.colors <- c(Acidobacteria = "grey26", Actinobacteria = "royalblue", Alphap
 ######################################################################################################
 
 #loading original mothur output
-sharedfile <- "/Users/vdenef/Documents/UMich/Papers/2015_Fujimoto_activity_Frontiers/Data_analysis/jgi16S40kitagger.trim.contigs.good.unique.good.filter.unique.precluster.pick.pick.an.unique_list.shared"
-taxfile <- "/Users/vdenef/Documents/UMich/Papers/2015_Fujimoto_activity_Frontiers/Data_analysis/jgi16S40kitagger.trim.contigs.good.unique.good.filter.unique.precluster.pick.pick.an.unique_list.0.03.cons.taxonomy"
+sharedfile <- "Input_data/jgi16S40kitagger.trim.contigs.good.unique.good.filter.unique.precluster.pick.pick.an.unique_list.shared"
+taxfile <- "Input_data/jgi16S40kitagger.trim.contigs.good.unique.good.filter.unique.precluster.pick.pick.an.unique_list.0.03.cons.taxonomy"
 mothurdata_original <- import_mothur(mothur_shared_file = sharedfile ,mothur_constaxonomy_file = taxfile )
-sampledata <- read.table("/Users/vdenef/Documents/UMich/Papers/2015_Fujimoto_activity_Frontiers/Data_analysis/LMSampleDescription.tsv",sep="\t",header=T,row.names=1,as.is=T)
+sampledata <- read.table("Input_data/LMSampleDescription.tsv",sep="\t",header=T,row.names=1,as.is=T)
 SAMPLE = sample_data(sampledata)
 physeq_mothur_original = merge_phyloseq(mothurdata_original, SAMPLE)
 #write.table(otu_table(mothurdata_original), "/Users/vdenef/Documents/UMich/Papers/2015_Fujimoto_activity_Frontiers/Data_analysis/shared_transposed", row.names = TRUE)
 
 #loading rdp taxonomy (50 cutoff)
-taxfile_rdp<-"/Users/vdenef/Documents/UMich/Papers/2015_Fujimoto_activity_Frontiers/Data_analysis/All_rdp50taxonomy.sed.tsv"
+taxfile_rdp<-"Input_data/All_rdp50taxonomy.sed.tsv"
 mothurdata_rdp <- import_mothur(mothur_shared_file = sharedfile ,mothur_constaxonomy_file = taxfile_rdp )
 physeq_mothur_rdp = merge_phyloseq(mothurdata_rdp, SAMPLE)
 
 ##loading FWDB+silva taxonomy
-#taxfile_fwdb<-"/Users/vdenef/Documents/UMich/Papers/2015_Fujimoto_activity_Frontiers/Data_analysis/jgi16S40kitagger.trim.contigs.good.unique.good.filter.unique.precluster.pick.pick.an.unique_list.0.03.cons.FWDB+Silva.taxonomy"
+#taxfile_fwdb<-"Input_data/jgi16S40kitagger.trim.contigs.good.unique.good.filter.unique.precluster.pick.pick.an.unique_list.0.03.cons.FWDB+Silva.taxonomy"
 #mothurdata_fwdb <- import_mothur(mothur_shared_file = sharedfile ,mothur_constaxonomy_file = taxfile_fwdb )
 #physeq_mothur_fwdb = merge_phyloseq(mothurdata_fwdb, SAMPLE)
 
@@ -96,35 +96,9 @@ physeq_mothur_rdp = merge_phyloseq(mothurdata_rdp, SAMPLE)
 #sed -e 's/Unclassified/unclassified/g' jgi16S40kitagger.trim.contigs.good.unique.good.filter.unique.precluster.pick.pick.an.unique_list.0.03.cons.FWDB+Silva.taxonomy.renamed.renamed > FWDB+Silva+rdp.taxonomy  
 
 #loading FWDB+silva+rdp(Cyano and unclassified)
-taxfile_fwdb<-"/Users/vdenef/Documents/UMich/Papers/2015_Fujimoto_activity_Frontiers/Data_analysis/FWDB+Silva+rdp.taxonomy"
+taxfile_fwdb<-"Input_data/FWDB+Silva+rdp.taxonomy"
 mothurdata_fwdb <- import_mothur(mothur_shared_file = sharedfile ,mothur_constaxonomy_file = taxfile_fwdb )
 physeq_mothur_fwdb = merge_phyloseq(mothurdata_fwdb, SAMPLE)
-
-#importing data into phyloseq
-otu_top205 <- read.table("/Users/vdenef/Documents/UMich/Papers/2015_Fujimoto_activity_Frontiers/Data_analysis/OTURF00005_number.tsv",sep="\t",header=T,row.names=1,as.is=T)
-tax_top205 <- read.table("/Users/vdenef/Documents/UMich/Papers/2015_Fujimoto_activity_Frontiers/Data_analysis/TAXARF00005CON2.tsv",sep="\t",header=T,row.names=1,as.is=T)
-otumat_top205 <- as.matrix(otu_top205)
-taxmat_top205 <- as.matrix(tax_top205)
-OTU_top205 = otu_table(otumat_top205, taxa_are_rows = TRUE)
-TAX_top205 = tax_table(taxmat_top205) 
-physeq_top205 = phyloseq(OTU_top205, TAX_top205)
-sampledata <- read.table("/Users/vdenef/Documents/UMich/Papers/2015_Fujimoto_activity_Frontiers/Data_analysis/LMSampleDescription.tsv",sep="\t",header=T,row.names=1,as.is=T)
-SAMPLE = sample_data(sampledata)
-physeq_top205 = merge_phyloseq(physeq_top205, SAMPLE)
-
-## TO DO add code used by Masa to select 205 OTUs --- better to load and scale, or to sclae, then filter?
-#loading Masa's rarefied dataset (4503 seqs)
-otu_rf <- read.table("/Users/vdenef/Documents/UMich/Papers/2015_Fujimoto_activity_Frontiers/Data_analysis/Rarefy4503_otu.tsv",sep="\t",header=T,row.names=1,as.is=T)
-tax_rf <- read.table("/Users/vdenef/Documents/UMich/Papers/2015_Fujimoto_activity_Frontiers/Data_analysis/Rarefy4503_taxa_RDP.tsv",sep="\t",header=T,row.names=1,as.is=T)
-otumat_rf <- as.matrix(otu_rf)
-taxmat_rf <- as.matrix(tax_rf)
-OTU_rf = otu_table(otumat_rf, taxa_are_rows = TRUE)
-TAX_rf = tax_table(taxmat_rf) 
-physeq_rf = phyloseq(OTU_rf, TAX_rf)
-sampledata <- read.table("/Users/vdenef/Documents/UMich/Papers/2015_Fujimoto_activity_Frontiers/Data_analysis/LMSampleDescription.tsv",sep="\t",header=T,row.names=1,as.is=T)
-SAMPLE = sample_data(sampledata)
-physeq_rf = merge_phyloseq(physeq_rf, SAMPLE)
-
 
 #setting phyloseq object to work with
 physeq <- physeq_mothur_fwdb
@@ -239,6 +213,7 @@ for  (i in 1:length(Phylum)){
   } 
 }
 
+
 phy$Phylum <- Phylum
 t <- tax_table(as.matrix(phy))
 
@@ -261,183 +236,26 @@ for  (i in 1:length(Phylum)){
   } 
 }
 
+for  (i in 1:length(Phylum)){ 
+  if (Phylum[i] == "Bacteroidetes"){
+    if (Class[i] == "unclassified"){
+      Phylum[i] <- Phylum[i] 
+    } else {
+      Phylum[i] <- Class[i]
+    }
+  } 
+}
+
+for  (i in 1:length(Phylum)){ 
+  if (Phylum[i] == "Sphingobacteriia"){
+      Phylum[i] <- "Sphingobacteria" 
+    }
+  } 
+
 phy$Phylum <- Phylum
 t <- tax_table(as.matrix(phy))
 
 tax_table(raw_merged) <- t
-```
-
-```{r alpha diversity}
-
-######################################################################################################
-##################################  ALPHA-DIVERSITY ###################################################
-######################################################################################################
-### TO DO: calculate based on individual samples rather than merged
-
-# For alpha diversity we will RAREFY our phyloseq object.  Our raw-data phyloseq object was:
-raw_merged  # Raw Merged Samples
-min(sample_sums(raw_merged))
-
-# Following code from Michelle's Butterflygut website: http://rstudio-pubs-static.s3.amazonaws.com/25722_9fc9bdc48f0d4f13b05fa61baeda57a0.html#alpha-diversity
-# Rarefy to 4616 reads with replacement 100 times to estimate species richness
-# Initialize matrices to store richness and evenness estimates
-richness <- matrix(nrow = 95,ncol = 100)  # Store richness:  We have 95 samples 
-row.names(richness) <- sample_names(raw_merged)
-evenness <- matrix(nrow = 95,ncol = 100)  #Store evenness
-row.names(evenness) <- sample_names(raw_merged)
-
-# We want to be reproducible - so let's set the seed.
-set.seed(3)
-
-# For 100 replications, rarefy the OTU table to 4616 reads and store the richness and evennes estimates in our 2 matrices we just created.Run this once, afterwards load saved data
-#The default for the rarefy_even_depth command is to pick with replacement so I set it to false. Picking without replacement is more computationally intensive 
-#for (i in 1:100) {
-#  r <- rarefy_even_depth(raw_merged, sample.size = 4616, verbose = FALSE, replace = FALSE)
-#  rich <- as.numeric(as.matrix(estimate_richness(r, measures="Observed")))
-#  richness[,i] <- rich
-#  even <- as.numeric(as.matrix(estimate_richness(r, measures="InvSimpson")))
-#  evenness[,i] <- even
-#}
-
-#write.table(richness, "/Users/vdenef/Documents/UMich/Papers/2015_Fujimoto_activity_Frontiers/Data_analysis/ObservedRichness100", row.names = TRUE)
-#write.table(evenness, "/Users/vdenef/Documents/UMich/Papers/2015_Fujimoto_activity_Frontiers/Data_analysis/InvSimpson100", row.names = TRUE)
-
-richness <- read.table("/Users/vdenef/Documents/UMich/Papers/2015_Fujimoto_activity_Frontiers/Data_analysis/ObservedRichness100", header = TRUE)
-evenness <- read.table("/Users/vdenef/Documents/UMich/Papers/2015_Fujimoto_activity_Frontiers/Data_analysis/InvSimpson100", header = TRUE)
-
-# Create a new matrix to hold the means and standard deviations of all the richness estimates
-rich_stats = matrix(nrow= nrow(richness), ncol=1)
-rich_stats[,1] = apply(richness, 1, mean)
-#rich_stats[,2] = apply(richness, 1, sd)
-rich_stats = data.frame(row.names(richness), rich_stats)
-colnames(rich_stats) = c("samples","mean")
-rich_stats$Test <- "Observed Richness"
-rich_stats$names <- as.character(rich_stats$samples)
-rich_stats <- merge(rich_stats,data_final_df,by="names")
-
-# Create a new matrix to hold the means and standard deviations of the evenness estimates
-even_stats = matrix(nrow = nrow(evenness), ncol = 1)
-even_stats[,1] = apply(evenness, 1, mean)
-#even_stats[,2] = apply(evenness, 1, sd)
-even_stats = data.frame(row.names(evenness), even_stats)
-colnames(even_stats) = c("samples","mean")
-even_stats$Test <- "Inverse Simpson"
-even_stats$names <- as.character(even_stats$samples)
-even_stats <- merge(even_stats,data_final_df,by="names")
-
-###  Add SIMPSON'S EVENNESS!
-#simps_even = as.data.frame(matrix(nrow = nrow(evenness), ncol = 2))
-simps_even <- data.frame(matrix(nrow = nrow(evenness), ncol = 3))
-colnames(simps_even) = c("samples","mean", "Test")
-simps_even$samples <- even_stats$samples
-simps_even$mean <-  even_stats$mean/rich_stats$mean
-simps_even$Test <- "Simpson's Evenness"
-simps_even$names <- as.character(simps_even$samples)
-simps_even <- merge(simps_even,data_final_df,by="names")
-
-#Combine the rich.stats and the even.stats dataframes
-alpha_stats <- rbind(rich_stats, even_stats, simps_even)
-
-####  fraction and cD/D analysis
-for(i in 1:length(alpha_stats$names)){
-  alpha_stats$frac_dna[i]<-paste(as.character(alpha_stats$Fraction[i]),
-                                  as.character(alpha_stats$DNA[i]))}
-
-Meanfrac_dna <- ddply(alpha_stats, ~Test+frac_dna, function(x){data.frame(Meanfrac_dna = mean(x$mean))})
-alpha_stats <- join(alpha_stats,Meanfrac_dna) 
-#SEfrac_dna <- ddply(alpha_stats, ~Test+frac_dna, function(x){data.frame(SEfrac_dna = se(x$mean))})
-#alpha_stats <- join(alpha_stats,SEfrac_dna)
-SDfrac_dna <- ddply(alpha_stats, ~Test+frac_dna, function(x){data.frame(SDfrac_dna = sd(x$mean))})
-alpha_stats <- join(alpha_stats,SDfrac_dna)
-
-alpha_fracdna <- ggplot(alpha_stats, aes(x = frac_dna, y = Meanfrac_dna, color = Fraction)) + geom_point(size = 5, alpha = 0.7) +
-  facet_grid(Test ~Fraction, scales="free", space="free_x") + ggtitle("Rarefied: Mean +/-SD") +
-  geom_errorbar(aes(ymin=Meanfrac_dna-SDfrac_dna, ymax=Meanfrac_dna+SDfrac_dna), width=.2, position=position_dodge(.9)) +
-  xlab("Habitat") + ylab("Within Sample Diversity") + theme_bw() + 
-  theme(axis.title.x = element_text(face="bold", size=16),
-        axis.text.x = element_text(angle=30, colour = "black", vjust=1, hjust = 1, size=14),
-        axis.text.y = element_text(colour = "black", size=14),
-        axis.title.y = element_text(face="bold", size=16),
-        plot.title = element_text(face="bold", size = 20),
-        legend.title = element_text(size=14, face="bold"),
-        legend.text = element_text(size = 14),
-        strip.background = element_blank(), strip.text = element_text(size=14, face="bold"),
-        legend.position="none"); alpha_fracdna
-
-####  fraction, season, station analysis
-for(i in 1:length(alpha_stats$names)){
-  alpha_stats$stat_seas_frac[i]<-paste(as.character(alpha_stats$Station[i]),
-                                  as.character(alpha_stats$Season[i]),
-                                  as.character(alpha_stats$Fraction[i]))}
-
-### Observed Richness and InvSimpson for station and season
-Meanstat_seas_frac <- ddply(alpha_stats, ~Test+stat_seas_frac, function(x){data.frame(Meanstat_seas_frac = mean(x$mean))})
-alpha_stats <- join(alpha_stats,Meanstat_seas_frac) 
-#SEstat_seas_frac <- ddply(alpha_stats, ~Test+stat_seas_frac, function(x){data.frame(SEstat_seas_frac = se(x$mean))})
-#alpha_stats <- join(alpha_stats,SEstat_seas_frac)
-SDstat_seas_frac <- ddply(alpha_stats, ~Test+stat_seas_frac, function(x){data.frame(SDstat_seas_frac = sd(x$mean))})
-alpha_stats <- join(alpha_stats,SDstat_seas_frac)
-
-## Make sure our factors are in the right order!
-alpha_stats$Station <-factor(alpha_stats$Station,levels=c("MLB", "MM15", "MM110"))
-alpha_stats$stat_seas_frac <-factor(alpha_stats$stat_seas_frac,levels=c("MLB Sp B", "MLB Sp E", "MLB Su B", "MLB Su E", "MLB Fa B", "MLB Fa E", "MM15 Sp B", "MM15 Sp E", "MM15 Su B", "MM15 Su E", "MM15 Fa B", "MM15 Fa E", "MM110 Sp B", "MM110 Sp E", "MM110 Su B", "MM110 Su E", "MM110 Fa B", "MM110 Fa E"))
-
-
-# plots the 3 diversity metrics together
-pdf(file="/Users/vdenef/Documents/UMich/Papers/2015_Fujimoto_activity_Frontiers/Rplot_alpha.pdf", width= 20, height=15, pointsize= 14, useDingbats=FALSE)
-alpha_statseasfrac <- ggplot(alpha_stats, aes(x = stat_seas_frac, y = Meanstat_seas_frac, color = Season)) + geom_point(size = 5, alpha = 0.7) +
-  facet_grid(Test ~Station, scales="free", space="free_x") + ggtitle("Rarefied: SD") +
-  geom_errorbar(aes(ymin=Meanstat_seas_frac-SDstat_seas_frac, ymax=Meanstat_seas_frac+SDstat_seas_frac), width=.2, position=position_dodge(.9)) +
-  xlab("Habitat") + ylab("Within Sample Diversity") + theme_bw() + 
-  theme(axis.title.x = element_text(face="bold", size=16),
-        axis.text.x = element_text(angle=30, colour = "black", vjust=1, hjust = 1, size=14),
-        axis.text.y = element_text(colour = "black", size=14),
-        axis.title.y = element_text(face="bold", size=16),
-        plot.title = element_text(face="bold", size = 20),
-        legend.title = element_text(size=14, face="bold"),
-        legend.text = element_text(size = 14),
-        strip.background = element_blank(), strip.text = element_text(size=14, face="bold"),
-        legend.position="none"); alpha_statseasfrac
-dev.off()
-
-##  Run stats on ALL the data that goes into the mean!  #### Check it out here:  https://aquaticr.wordpress.com/2012/12/18/multiple-comparison-test-for-non-parametric-data/
-richobs <-subset(alpha_stats, Test == "Observed Richness") 
-hist(richobs$mean, breaks = 40)  # Not normally distributed!!!
-richobs$mean <- as.numeric(richobs$mean)
-## Do the KW test
-richobs_KW <- kruskal.test(richobs$mean ~ richobs$stat_seas_frac) # Kruskal Wallis test on Observed Richness!
-print(richobs_KW)  # show Kruskal Wallis result
-### Which samples are significantly different from each other?
-richobs_KW_MC <- kruskalmc(richobs$mean ~ richobs$stat_seas_frac)  ## Defaults to P < 0.05
-print(richobs_KW_MC)
-### Time to figure out letters to represent significance in a plot!
-richobs_test <- richobs_KW_MC$dif.com$difference # select logical vector
-names(richobs_test) <- row.names(richobs_KW_MC$dif.com) # add comparison names
-# create a list with "homogenous groups" coded by letter
-richobs_letters <- multcompLetters(richobs_test, compare="<", threshold=0.05, Letters=c(letters, LETTERS, "."), reversed = FALSE)#['Letters']
-###  Let's extract the values from the multcompLetters object
-richobs_sigs_dataframe <-  data.frame(as.vector(names(richobs_letters$Letters)), as.vector(richobs_letters$Letters))
-colnames(richobs_sigs_dataframe) <- c("stat_seas_frac", "siglabel")
-richobs_try <- merge(richobs, richobs_sigs_dataframe, by = "stat_seas_frac")
-
-#plots observed richness with stats letters
-plot_richobs_sigs <- ggplot(richobs_try, aes(x = stat_seas_frac, y = Meanstat_seas_frac, color = Season)) + geom_point(size = 5, alpha = 0.7) +
-  facet_grid(Test ~ Station, scales="free", space="free_x") + 
-  geom_text(aes(label = siglabel, x = stat_seas_frac, y = ((Meanstat_seas_frac+SDstat_seas_frac) + 75)), size = 5) +
-  geom_errorbar(aes(ymin=Meanstat_seas_frac-SDstat_seas_frac, ymax=Meanstat_seas_frac+SDstat_seas_frac), width=.2, position=position_dodge(.9)) +
-  theme_bw() +   xlab("Habitat") + ylab("Observed Richness") +  
-  theme(axis.title.x = element_text(face="bold", size=16),
-        axis.text.x = element_text(angle=30, colour = "black", vjust=1, hjust = 1, size=14),
-        axis.text.y = element_text(colour = "black", size=14),
-        axis.title.y = element_text(face="bold", size=16),
-        plot.title = element_text(face="bold", size = 20),
-        strip.text.x = element_text(size=16, face="bold"),
-        strip.text.y = element_blank(),
-        legend.title = element_text(size=14, face="bold"),
-        legend.text = element_text(size = 14),
-        strip.background = element_blank(),
-        legend.position="none"); plot_richobs_sigs
-
 ```
 
 ```{r beta-diversity DNA and cDNA count data: upgma + PCoA + ADONIS}
@@ -448,163 +266,8 @@ plot_richobs_sigs <- ggplot(richobs_try, aes(x = stat_seas_frac, y = Meanstat_se
 # upgma clustering
 norm_bray <- vegdist(t(otu_table(merged_final))), method = "bray")  # calculates the Bray-Curtis Distances
 upgma <- hclust(d = norm_bray,method = "average")
-pdf(file="/Users/vdenef/Documents/UMich/Papers/2015_Fujimoto_activity_Frontiers/Rplot_upgma_bray.pdf", width= 20, height=15, pointsize= 14)
+pdf(file="Figures/Rplot_upgma_bray.pdf", width= 20, height=15, pointsize= 14)
 upgma_bray <- plot(upgma, hang = -1) ; upgma_bray
-  dev.off()
-
-# Betadiv pcoa Bray-Curtis
-norm_bray <- vegdist(t(otu_table(merged_final))), method = "bray")  # calculates the Bray-Curtis Distances
-bray_pcoa <- pcoa(norm_bray)
-bray_pcoa2 <- bray_pcoa$vectors
-bray_pcoa3 <- data.frame(bray_pcoa2[, 1:4])
-bray_pcoa3$names <- row.names(bray_pcoa3)
-bray_pcoa4 <- merge(bray_pcoa3,data_final_df,by="names")
-for(i in 1:length(bray_pcoa4$Season)){
-  bray_pcoa4$Depth_Seas[i]<-paste(as.character(bray_pcoa4$Depth_C[i]),
-                                  as.character(bray_pcoa4$Season[i]))}
-bray_values <- bray_pcoa$values
-bray_rel_eigens <- bray_values$Relative_eig
-bray_rel_eigen1 <- bray_rel_eigens[1]
-bray_rel_eigen1_percent <- round(bray_rel_eigen1 * 100, digits = 1)
-bray_rel_eigen2 <- bray_rel_eigens[2]
-bray_rel_eigen2_percent <- round(bray_rel_eigen2 * 100, digits = 1)
-bray_rel_eigen3 <- bray_rel_eigens[3]
-bray_rel_eigen3_percent <- round(bray_rel_eigen3 * 100, digits = 1)
-bray_rel_eigen4 <- bray_rel_eigens[4]
-bray_rel_eigen4_percent <- round(bray_rel_eigen4 * 100, digits = 1)
-bray_axis1 <- paste("PCoA1:",bray_rel_eigen1_percent,"%")
-bray_axis2 <- paste("PCoA2:",bray_rel_eigen2_percent,"%")
-bray_axis3 <- paste("PCoA3:",bray_rel_eigen3_percent,"%")
-bray_axis4 <- paste("PCoA4:",bray_rel_eigen4_percent,"%")
-
-pdf(file="/Users/vdenef/Documents/UMich/Papers/2015_Fujimoto_activity_Frontiers/Rplot_PCOA12_BC.pdf", width= 20, height=15, pointsize= 14)
-pcoa_BC12 <- ggplot(bray_pcoa4, aes(Axis.1, Axis.2 * -1, color = Season, shape = Station, size = Fraction, fill = Depth_Seas)) +
-  xlab(bray_axis1) + ylab(bray_axis2) + #ggtitle("Bray-Curtis") +
-  geom_point(alpha=0.9) + geom_text(aes(label=DNA_short),hjust=0.5, vjust=1.3) + theme_bw() + #ylim(1, -1) + xlim(1, -1) +
-  scale_color_manual(name = "season", breaks=c("Sp", "Su",  "Fa"),
-                     labels = c("Spring", "Summer",  "Fall"), 
-                     values = c("Fa" = "mediumblue", "Sp" = "darkgreen", "Su" = "red")) +
-  scale_shape_manual(name = "station", breaks = c("MLB", "MM15",  "MM110"), 
-                     labels = c("MLB", "M15",  "M110"),
-                     values = c("MLB" = 21, "MM15" = 22, "MM110" = 24)) +
-  scale_size_manual(name = "fraction", breaks = c("E", "B"), 
-                     labels = c("Particle", "Free"),
-                     values = c("B" = 5, "E" = 10)) +
-  scale_fill_manual(name = "depth", breaks = c("D Sp", "D Su", "D Fa", "M Su", "S Sp", "S Su", "S Fa"), 
-                     labels = c("Deep","Deep","Deep", "Chla max", "Surface", "Surface", "Surface"),
-                     values = c("D Fa" = "mediumblue", "D Sp" = "darkgreen", "D Su" = "red", "M Su" = "orange", "S Sp" = "white", "S Su" = "white", "S Fa" = "white")) +
-  theme(axis.text.x = element_text(colour="black", vjust=0.5, size=14), 
-        axis.text.y = element_text(colour="black", vjust=0.5, size=14),
-        axis.title.x = element_text(face="bold", size=16),
-        axis.title.y = element_text(face="bold", size=16),
-        legend.title = element_text(size=12, face="bold"),
-        legend.text = element_text(size = 12),
-        ###LEGEND TOP RIGHT CORNER
-        legend.position = "right"); pcoa_BC12
-  dev.off()
-
-pdf(file="/Users/vdenef/Documents/UMich/Papers/2015_Fujimoto_activity_Frontiers/Rplot_PCOA34_BC.pdf", width= 20, height=15, pointsize= 14)
-pcoa_BC34 <- ggplot(bray_pcoa4, aes(Axis.3, Axis.4 * -1, color = Season, shape = Station, size = Fraction, fill = Depth_Seas)) +
-  xlab(bray_axis3) + ylab(bray_axis4) + #ggtitle("Bray-Curtis") +
-  geom_point(alpha=0.9) + geom_text(aes(label=DNA_short),hjust=0.5, vjust=1.3)+ theme_bw() + #ylim(1, -1) + xlim(1, -1) +
-  scale_color_manual(name = "season", breaks=c("Sp", "Su",  "Fa"),
-                     labels = c("Spring", "Summer",  "Fall"), 
-                     values = c("Fa" = "mediumblue", "Sp" = "darkgreen", "Su" = "red")) +
-  scale_shape_manual(name = "station", breaks = c("MLB", "MM15",  "MM110"), 
-                     labels = c("MLB", "M15",  "M110"),
-                     values = c("MLB" = 21, "MM15" = 22, "MM110" = 24)) +
-  scale_size_manual(name = "fraction", breaks = c("E", "B"), 
-                     labels = c("Particle", "Free"),
-                     values = c("B" = 5, "E" = 10)) +
-  scale_fill_manual(name = "depth", breaks = c("D Sp", "D Su", "D Fa", "M Su", "S Sp", "S Su", "S Fa"), 
-                     labels = c("Deep","Deep","Deep", "Chla max", "Surface", "Surface", "Surface"),
-                     values = c("D Fa" = "mediumblue", "D Sp" = "darkgreen", "D Su" = "red", "M Su" = "orange", "S Sp" = "white", "S Su" = "white", "S Fa" = "white")) +
-  theme(axis.text.x = element_text(colour="black", vjust=0.5, size=14), 
-        axis.text.y = element_text(colour="black", vjust=0.5, size=14),
-        axis.title.x = element_text(face="bold", size=16),
-        axis.title.y = element_text(face="bold", size=16),
-        legend.title = element_text(size=12, face="bold"),
-        legend.text = element_text(size = 12),
-        ###LEGEND TOP RIGHT CORNER
-        legend.position = "right"); pcoa_BC34
-  dev.off()
-
-# Betadiv pcoa Sorensen
-sc_otu2 <- data.frame(t(sc_otu))
-norm_soren <- vegdist(sc_otu2, method = "bray", binary = TRUE)
-soren_pcoa <- pcoa(norm_soren)
-soren_pcoa2 <- soren_pcoa$vectors
-soren_pcoa3 <- data.frame(soren_pcoa2[, 1:4])
-soren_pcoa3$names <- row.names(soren_pcoa3)
-soren_pcoa4 <- merge(soren_pcoa3,data_final_df,by="names")
-for(i in 1:length(soren_pcoa4$Season)){
-  soren_pcoa4$Depth_Seas[i]<-paste(as.character(soren_pcoa4$Depth_C[i]),
-                                  as.character(soren_pcoa4$Season[i]))}
-soren_values <- soren_pcoa$values
-soren_rel_eigens <- soren_values$Relative_eig
-soren_rel_eigen1 <- soren_rel_eigens[1]
-soren_rel_eigen1_percent <- round(soren_rel_eigen1 * 100, digits = 1)
-soren_rel_eigen2 <- soren_rel_eigens[2]
-soren_rel_eigen2_percent <- round(soren_rel_eigen2 * 100, digits = 1)
-soren_rel_eigen3 <- soren_rel_eigens[3]
-soren_rel_eigen3_percent <- round(soren_rel_eigen3 * 100, digits = 1)
-soren_rel_eigen4 <- soren_rel_eigens[4]
-soren_rel_eigen4_percent <- round(soren_rel_eigen4 * 100, digits = 1)
-soren_axis1 <- paste("PCoA1:",soren_rel_eigen1_percent,"%")
-soren_axis2 <- paste("PCoA2:",soren_rel_eigen2_percent,"%")
-soren_axis3 <- paste("PCoA3:",soren_rel_eigen3_percent,"%")
-soren_axis4 <- paste("PCoA4:",soren_rel_eigen4_percent,"%")
-
-pdf(file="/Users/vdenef/Documents/UMich/Papers/2015_Fujimoto_activity_Frontiers/Rplot_PCOA12_SOR.pdf", width= 20, height=15, pointsize= 14)
-pcoa_soren12 <- ggplot(soren_pcoa4, aes(Axis.1, Axis.2 * -1, color = Season, shape = Station, size = Fraction, fill = Depth_Seas)) +
-  xlab(soren_axis1) + ylab(soren_axis2) + #ggtitle("Bray-Curtis") +
-  geom_point(alpha=0.9) + geom_text(aes(label=DNA_short),hjust=0.5, vjust=1.3) + theme_bw() + #ylim(1, -1) + xlim(1, -1) +
-  scale_color_manual(name = "season", breaks=c("Sp", "Su",  "Fa"),
-                     labels = c("Spring", "Summer",  "Fall"), 
-                     values = c("Fa" = "mediumblue", "Sp" = "darkgreen", "Su" = "red")) +
-  scale_shape_manual(name = "station", breaks = c("MLB", "MM15",  "MM110"), 
-                     labels = c("MLB", "M15",  "M110"),
-                     values = c("MLB" = 21, "MM15" = 22, "MM110" = 24)) +
-  scale_size_manual(name = "fraction", breaks = c("E", "B"), 
-                     labels = c("Particle", "Free"),
-                     values = c("B" = 5, "E" = 10)) +
-  scale_fill_manual(name = "depth", breaks = c("D Sp", "D Su", "D Fa", "M Su", "S Sp", "S Su", "S Fa"), 
-                     labels = c("Deep","Deep","Deep", "Chla max", "Surface", "Surface", "Surface"),
-                     values = c("D Fa" = "mediumblue", "D Sp" = "darkgreen", "D Su" = "red", "M Su" = "orange", "S Sp" = "white", "S Su" = "white", "S Fa" = "white")) +
-  theme(axis.text.x = element_text(colour="black", vjust=0.5, size=14), 
-        axis.text.y = element_text(colour="black", vjust=0.5, size=14),
-        axis.title.x = element_text(face="bold", size=16),
-        axis.title.y = element_text(face="bold", size=16),
-        legend.title = element_text(size=12, face="bold"),
-        legend.text = element_text(size = 12),
-        ###LEGEND TOP RIGHT CORNER
-        legend.position = "right"); pcoa_soren12
-  dev.off()
-
-pdf(file="/Users/vdenef/Documents/UMich/Papers/2015_Fujimoto_activity_Frontiers/Rplot_PCOA34_SOR.pdf", width= 20, height=15, pointsize= 14)
-pcoa_soren34 <- ggplot(soren_pcoa4, aes(Axis.3, Axis.4 * -1, color = Season, shape = Station, size = Fraction, fill = Depth_Seas)) +
-  xlab(soren_axis3) + ylab(soren_axis4) + #ggtitle("Bray-Curtis") +
-  geom_point(alpha=0.9) + geom_text(aes(label=DNA_short),hjust=0.5, vjust=1.3) + theme_bw() + #ylim(1, -1) + xlim(1, -1) +
-  scale_color_manual(name = "season", breaks=c("Sp", "Su",  "Fa"),
-                     labels = c("Spring", "Summer",  "Fall"), 
-                     values = c("Fa" = "mediumblue", "Sp" = "darkgreen", "Su" = "red")) +
-  scale_shape_manual(name = "station", breaks = c("MLB", "MM15",  "MM110"), 
-                     labels = c("MLB", "M15",  "M110"),
-                     values = c("MLB" = 21, "MM15" = 22, "MM110" = 24)) +
-  scale_size_manual(name = "fraction", breaks = c("E", "B"), 
-                     labels = c("Particle", "Free"),
-                     values = c("B" = 5, "E" = 10)) +
-  scale_fill_manual(name = "depth", breaks = c("D Sp", "D Su", "D Fa", "M Su", "S Sp", "S Su", "S Fa"), 
-                     labels = c("Deep","Deep","Deep", "Chla max", "Surface", "Surface", "Surface"),
-                     values = c("D Fa" = "mediumblue", "D Sp" = "darkgreen", "D Su" = "red", "M Su" = "orange", "S Sp" = "white", "S Su" = "white", "S Fa" = "white")) +
-  theme(axis.text.x = element_text(colour="black", vjust=0.5, size=14), 
-        axis.text.y = element_text(colour="black", vjust=0.5, size=14),
-        axis.title.x = element_text(face="bold", size=16),
-        axis.title.y = element_text(face="bold", size=16),
-        legend.title = element_text(size=12, face="bold"),
-        legend.text = element_text(size = 12),
-        ###LEGEND TOP RIGHT CORNER
-        legend.position = "right"); pcoa_soren34
   dev.off()
 
 #Let's run ADONIS using Michelle's function
@@ -618,15 +281,169 @@ phyloseq_to_adonis(merged_final, distmat = norm_bray, dist = "bray","Lake")
 formula<-c("Fraction","Season","Lake","Station","Depth_C","DNA","DayNight")
 phyloseq_to_adonis(merged_final, distmat = norm_bray, dist = "bray",formula)
 
-phyloseq_to_adonis(merged_final, distmat = norm_soren, dist = "bray","Fraction")
-phyloseq_to_adonis(merged_final, distmat = norm_soren, dist = "bray","Season")
-phyloseq_to_adonis(merged_final, distmat = norm_soren, dist = "bray","Station")
-phyloseq_to_adonis(merged_final, distmat = norm_soren, dist = "bray","DNA")
-phyloseq_to_adonis(merged_final, distmat = norm_soren, dist = "bray","Depth_C")
-phyloseq_to_adonis(merged_final, distmat = norm_soren, dist = "bray","DayNight")
-phyloseq_to_adonis(merged_final, distmat = norm_soren, dist = "bray","Lake")
-formula<-c("Season","Lake","Station","Fraction","Depth_C","DNA","DayNight")
-phyloseq_to_adonis(merged_final, distmat = norm_soren, dist = "bray",formula)
+#Partial Mantel test taking variation in DNA in account 
+############TO BE ADDED
+
+## create PCoA plot for RNA and DNA seperately
+# Betadiv pcoa Bray-Curtis DNA only
+merged_final_DNA <- subset_samples(merged_final,DNA == "D")
+norm_bray_DNA <- vegdist(t(otu_table(merged_final_DNA)), method = "bray")  # calculates the Bray-Curtis Distances
+bray_pcoa_DNA <- pcoa(norm_bray_DNA)
+bray_pcoa2_DNA <- bray_pcoa_DNA$vectors
+bray_pcoa3_DNA <- data.frame(bray_pcoa2_DNA[, 1:4])
+bray_pcoa3_DNA$names <- row.names(bray_pcoa3_DNA)
+bray_pcoa4_DNA <- merge(bray_pcoa3_DNA,data_final_df,by="names")
+for(i in 1:length(bray_pcoa4_DNA$Season)){
+  bray_pcoa4_DNA$Depth_Seas[i]<-paste(as.character(bray_pcoa4_DNA$Depth_C[i]),
+                                  as.character(bray_pcoa4_DNA$Season[i]))}
+bray_values_DNA <- bray_pcoa_DNA$values
+bray_rel_eigens_DNA <- bray_values_DNA$Relative_eig
+bray_rel_eigen1_DNA <- bray_rel_eigens_DNA[1]
+bray_rel_eigen1_percent_DNA <- round(bray_rel_eigen1_DNA * 100, digits = 1)
+bray_rel_eigen2_DNA <- bray_rel_eigens_DNA[2]
+bray_rel_eigen2_percent_DNA <- round(bray_rel_eigen2_DNA * 100, digits = 1)
+bray_rel_eigen3_DNA <- bray_rel_eigens_DNA[3]
+bray_rel_eigen3_percent_DNA <- round(bray_rel_eigen3_DNA * 100, digits = 1)
+bray_rel_eigen4_DNA <- bray_rel_eigens_DNA[4]
+bray_rel_eigen4_percent_DNA <- round(bray_rel_eigen4_DNA * 100, digits = 1)
+bray_axis1_DNA <- paste("PCoA1:",bray_rel_eigen1_percent_DNA,"%")
+bray_axis2_DNA <- paste("PCoA2:",bray_rel_eigen2_percent_DNA,"%")
+bray_axis3_DNA <- paste("PCoA3:",bray_rel_eigen3_percent_DNA,"%")
+bray_axis4_DNA <- paste("PCoA4:",bray_rel_eigen4_percent_DNA,"%")
+
+pdf(file="Figures/Rplot_PCOA12_BC_DNA.pdf", width= 20, height=15, pointsize= 14)
+pcoa_BC12_DNA <- ggplot(bray_pcoa4_DNA, aes(Axis.1, Axis.2 * -1, color = Season, shape = Station, size = Fraction, fill = Depth_Seas)) +
+  xlab(bray_axis1_DNA) + ylab(bray_axis2_DNA) + #ggtitle("Bray-Curtis") +
+  geom_point(alpha=0.9) + theme_bw() + #ylim(1, -1) + xlim(1, -1) +
+  scale_color_manual(name = "season", breaks=c("Sp", "Su",  "Fa"),
+                     labels = c("Spring", "Summer",  "Fall"), 
+                     values = c("Fa" = "mediumblue", "Sp" = "darkgreen", "Su" = "red")) +
+  scale_shape_manual(name = "station", breaks = c("MLB", "MM15",  "MM110"), 
+                     labels = c("MLB", "M15",  "M110"),
+                     values = c("MLB" = 21, "MM15" = 22, "MM110" = 24)) +
+  scale_size_manual(name = "fraction", breaks = c("E", "B"), 
+                     labels = c("Particle", "Free"),
+                     values = c("B" = 5, "E" = 10)) +
+  scale_fill_manual(name = "depth", breaks = c("D Sp", "D Su", "D Fa", "M Su", "S Sp", "S Su", "S Fa"), 
+                     labels = c("Deep","Deep","Deep", "Chla max", "Surface", "Surface", "Surface"),
+                     values = c("D Fa" = "mediumblue", "D Sp" = "darkgreen", "D Su" = "red", "M Su" = "orange", "S Sp" = "white", "S Su" = "white", "S Fa" = "white")) +
+  theme(axis.text.x = element_text(colour="black", vjust=0.5, size=14), 
+        axis.text.y = element_text(colour="black", vjust=0.5, size=14),
+        axis.title.x = element_text(face="bold", size=16),
+        axis.title.y = element_text(face="bold", size=16),
+        legend.title = element_text(size=12, face="bold"),
+        legend.text = element_text(size = 12),
+        ###LEGEND TOP RIGHT CORNER
+        legend.position = "right"); pcoa_BC12_DNA
+  dev.off()
+
+pdf(file="Figures/Rplot_PCOA34_BC_DNA.pdf", width= 20, height=15, pointsize= 14)
+pcoa_BC34_DNA <- ggplot(bray_pcoa4_DNA, aes(Axis.3, Axis.4 * -1, color = Season, shape = Station, size = Fraction, fill = Depth_Seas)) +
+  xlab(bray_axis3_DNA) + ylab(bray_axis4_DNA) + #ggtitle("Bray-Curtis") +
+  geom_point(alpha=0.9) + theme_bw() + #ylim(1, -1) + xlim(1, -1) +
+  scale_color_manual(name = "season", breaks=c("Sp", "Su",  "Fa"),
+                     labels = c("Spring", "Summer",  "Fall"), 
+                     values = c("Fa" = "mediumblue", "Sp" = "darkgreen", "Su" = "red")) +
+  scale_shape_manual(name = "station", breaks = c("MLB", "MM15",  "MM110"), 
+                     labels = c("MLB", "M15",  "M110"),
+                     values = c("MLB" = 21, "MM15" = 22, "MM110" = 24)) +
+  scale_size_manual(name = "fraction", breaks = c("E", "B"), 
+                     labels = c("Particle", "Free"),
+                     values = c("B" = 5, "E" = 10)) +
+  scale_fill_manual(name = "depth", breaks = c("D Sp", "D Su", "D Fa", "M Su", "S Sp", "S Su", "S Fa"), 
+                     labels = c("Deep","Deep","Deep", "Chla max", "Surface", "Surface", "Surface"),
+                     values = c("D Fa" = "mediumblue", "D Sp" = "darkgreen", "D Su" = "red", "M Su" = "orange", "S Sp" = "white", "S Su" = "white", "S Fa" = "white")) +
+  theme(axis.text.x = element_text(colour="black", vjust=0.5, size=14), 
+        axis.text.y = element_text(colour="black", vjust=0.5, size=14),
+        axis.title.x = element_text(face="bold", size=16),
+        axis.title.y = element_text(face="bold", size=16),
+        legend.title = element_text(size=12, face="bold"),
+        legend.text = element_text(size = 12),
+        ###LEGEND TOP RIGHT CORNER
+        legend.position = "right"); pcoa_BC34_DNA
+  dev.off()
+
+
+# Betadiv pcoa Bray-Curtis RNA only
+merged_final_RNA <- subset_samples(merged_final,DNA == "cD")
+norm_bray_RNA <- vegdist(t(otu_table(merged_final_RNA)), method = "bray")  # calculates the Bray-Curtis Distances
+bray_pcoa_RNA <- pcoa(norm_bray_RNA)
+bray_pcoa2_RNA <- bray_pcoa_RNA$vectors
+bray_pcoa3_RNA <- data.frame(bray_pcoa2_RNA[, 1:4])
+bray_pcoa3_RNA$names <- row.names(bray_pcoa3_RNA)
+bray_pcoa4_RNA <- merge(bray_pcoa3_RNA,data_final_df,by="names")
+for(i in 1:length(bray_pcoa4_RNA$Season)){
+  bray_pcoa4_RNA$Depth_Seas[i]<-paste(as.character(bray_pcoa4_RNA$Depth_C[i]),
+                                  as.character(bray_pcoa4_RNA$Season[i]))}
+bray_values_RNA <- bray_pcoa_RNA$values
+bray_rel_eigens_RNA <- bray_values_RNA$Relative_eig
+bray_rel_eigen1_RNA <- bray_rel_eigens_RNA[1]
+bray_rel_eigen1_percent_RNA <- round(bray_rel_eigen1_RNA * 100, digits = 1)
+bray_rel_eigen2_RNA <- bray_rel_eigens_RNA[2]
+bray_rel_eigen2_percent_RNA <- round(bray_rel_eigen2_RNA * 100, digits = 1)
+bray_rel_eigen3_RNA <- bray_rel_eigens_RNA[3]
+bray_rel_eigen3_percent_RNA <- round(bray_rel_eigen3_RNA * 100, digits = 1)
+bray_rel_eigen4_RNA <- bray_rel_eigens_RNA[4]
+bray_rel_eigen4_percent_RNA <- round(bray_rel_eigen4_RNA * 100, digits = 1)
+bray_axis1_RNA <- paste("PCoA1:",bray_rel_eigen1_percent_RNA,"%")
+bray_axis2_RNA <- paste("PCoA2:",bray_rel_eigen2_percent_RNA,"%")
+bray_axis3_RNA <- paste("PCoA3:",bray_rel_eigen3_percent_RNA,"%")
+bray_axis4_RNA <- paste("PCoA4:",bray_rel_eigen4_percent_RNA,"%")
+
+pdf(file="Figures/Rplot_PCOA12_BC_RNA.pdf", width= 20, height=15, pointsize= 14)
+pcoa_BC12_RNA <- ggplot(bray_pcoa4_RNA, aes(Axis.1, Axis.2 * -1, color = Season, shape = Station, size = Fraction, fill = Depth_Seas)) +
+  xlab(bray_axis1_RNA) + ylab(bray_axis2_RNA) + #ggtitle("Bray-Curtis") +
+  geom_point(alpha=0.9) + theme_bw() + #ylim(1, -1) + xlim(1, -1) +
+  scale_color_manual(name = "season", breaks=c("Sp", "Su",  "Fa"),
+                     labels = c("Spring", "Summer",  "Fall"), 
+                     values = c("Fa" = "mediumblue", "Sp" = "darkgreen", "Su" = "red")) +
+  scale_shape_manual(name = "station", breaks = c("MLB", "MM15",  "MM110"), 
+                     labels = c("MLB", "M15",  "M110"),
+                     values = c("MLB" = 21, "MM15" = 22, "MM110" = 24)) +
+  scale_size_manual(name = "fraction", breaks = c("E", "B"), 
+                     labels = c("Particle", "Free"),
+                     values = c("B" = 5, "E" = 10)) +
+  scale_fill_manual(name = "depth", breaks = c("D Sp", "D Su", "D Fa", "M Su", "S Sp", "S Su", "S Fa"), 
+                     labels = c("Deep","Deep","Deep", "Chla max", "Surface", "Surface", "Surface"),
+                     values = c("D Fa" = "mediumblue", "D Sp" = "darkgreen", "D Su" = "red", "M Su" = "orange", "S Sp" = "white", "S Su" = "white", "S Fa" = "white")) +
+  theme(axis.text.x = element_text(colour="black", vjust=0.5, size=14), 
+        axis.text.y = element_text(colour="black", vjust=0.5, size=14),
+        axis.title.x = element_text(face="bold", size=16),
+        axis.title.y = element_text(face="bold", size=16),
+        legend.title = element_text(size=12, face="bold"),
+        legend.text = element_text(size = 12),
+        ###LEGEND TOP RIGHT CORNER
+        legend.position = "right"); pcoa_BC12_RNA
+  dev.off()
+
+pdf(file="Figures/Rplot_PCOA34_BC_RNA.pdf", width= 20, height=15, pointsize= 14)
+pcoa_BC34_RNA <- ggplot(bray_pcoa4_RNA, aes(Axis.3, Axis.4 * -1, color = Season, shape = Station, size = Fraction, fill = Depth_Seas)) +
+  xlab(bray_axis3_RNA) + ylab(bray_axis4_RNA) + #ggtitle("Bray-Curtis") +
+  geom_point(alpha=0.9) + theme_bw() + #ylim(1, -1) + xlim(1, -1) +
+  scale_color_manual(name = "season", breaks=c("Sp", "Su",  "Fa"),
+                     labels = c("Spring", "Summer",  "Fall"), 
+                     values = c("Fa" = "mediumblue", "Sp" = "darkgreen", "Su" = "red")) +
+  scale_shape_manual(name = "station", breaks = c("MLB", "MM15",  "MM110"), 
+                     labels = c("MLB", "M15",  "M110"),
+                     values = c("MLB" = 21, "MM15" = 22, "MM110" = 24)) +
+  scale_size_manual(name = "fraction", breaks = c("E", "B"), 
+                     labels = c("Particle", "Free"),
+                     values = c("B" = 5, "E" = 10)) +
+  scale_fill_manual(name = "depth", breaks = c("D Sp", "D Su", "D Fa", "M Su", "S Sp", "S Su", "S Fa"), 
+                     labels = c("Deep","Deep","Deep", "Chla max", "Surface", "Surface", "Surface"),
+                     values = c("D Fa" = "mediumblue", "D Sp" = "darkgreen", "D Su" = "red", "M Su" = "orange", "S Sp" = "white", "S Su" = "white", "S Fa" = "white")) +
+  theme(axis.text.x = element_text(colour="black", vjust=0.5, size=14), 
+        axis.text.y = element_text(colour="black", vjust=0.5, size=14),
+        axis.title.x = element_text(face="bold", size=16),
+        axis.title.y = element_text(face="bold", size=16),
+        legend.title = element_text(size=12, face="bold"),
+        legend.text = element_text(size = 12),
+        ###LEGEND TOP RIGHT CORNER
+        legend.position = "right"); pcoa_BC34_RNA
+  dev.off()
+
+# Procrustes analysis
+############TO BE ADDED
 ```
 
 ```{r barplots}
@@ -760,7 +577,7 @@ cDD_PCoA_title <- paste("PCoA cDNA:DNA ratios when considering",ntaxa(merged_fin
   
 # Betadiv pcoa Euclidean distance on log transformed ratio data
 cDD_norm_euc <- vegdist(t(mf_cD2D_log), method = "euclidean")  # calculates the Bray-Curtis Distances
-cDD_euc_pcoa <- pcoa(cDD_norm_euc)
+cDD_euc_pcoa <- pcoa(cDD_norm_euc) 
 cDD_euc_pcoa2 <- cDD_euc_pcoa$vectors
 cDD_euc_pcoa3 <- data.frame(cDD_euc_pcoa2[, 1:4])
 cDD_euc_pcoa3$names <- row.names(cDD_euc_pcoa3)
@@ -1376,6 +1193,7 @@ for  (i in 1:length(Phylum_temp)){
 deseq_otu_DNAcDNA_FL_raw$Phylum_plot <- Phylum_temp
 
 deseq_otu_DNAcDNA_FLandPA_raw<-rbind(deseq_otu_DNAcDNA_FL_raw,deseq_otu_DNAcDNA_PA_raw)
+deseq_otu_DNAcDNA_FLandPA_raw$Phylum_plot <-factor(deseq_otu_DNAcDNA_FLandPA_raw$Phylum_plot,levels=c("Proteobacteria FL","Proteobacteria PA","Alphaproteobacteria FL","Alphaproteobacteria PA","Betaproteobacteria FL","Betaproteobacteria PA","Gammaproteobacteria FL","Gammaproteobacteria PA","Deltaproteobacteria FL","Deltaproteobacteria PA","Bacteroidetes FL","Bacteroidetes PA","Cytophagia FL","Cytophagia PA","Flavobacteria FL","Flavobacteria PA","Sphingobacteria FL","Sphingobacteria PA","Actinobacteria FL","Actinobacteria PA","Cyanobacteria FL","Cyanobacteria PA","Verrucomicrobia FL","Verrucomicrobia PA","Planctomycetes FL","Planctomycetes PA","Chloroflexi FL","Chloroflexi PA","Acidobacteria FL","Acidobacteria PA","Armatimonadetes FL","Armatimonadetes PA","Firmicutes FL","Firmicutes PA","Gemmatimonadetes FL","Gemmatimonadetes PA","unclassified FL","unclassified PA"))
 deseq_otu_DNAcDNA_plot_FLandPA_raw <- plot_deSEQ_combo(deseq_otu_DNAcDNA_FLandPA_raw, "OTU cDNA:DNA FL and PA samples")
 deseq_otu_DNAcDNA_plot_FLandPA_raw
 
