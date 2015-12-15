@@ -446,6 +446,11 @@ merged_final_toptaxa <- prune_taxa(taxa_sums(merged_final) > 215, merged_final)
 physeq_toptaxa = prune_taxa(taxa_names(merged_final_toptaxa),physeq)
 raw_merged_toptaxa = prune_taxa(taxa_names(merged_final_toptaxa),raw_merged)
 
+### determine how many sequences included for each sample when only considering 200 top OTUs
+relab_toptaxa <- sample_sums(merged_final_toptaxa)/sample_sums(merged_final)*100
+mean(relab_toptaxa)
+sd(relab_toptaxa)
+
 ########## ADD THE PROTEOBACTERIA TO THE PHYLA
 phy <- data.frame(tax_table(merged_final_toptaxa))
 Phylum <- as.character(phy$Phylum)
@@ -1881,6 +1886,12 @@ euc_depth_boxplot <- ggplot(euc_depth_try, aes(x = compdepth, y = value, fill = 
 dev.off()
 ```
 
+```{r top 200 taxa extract OTUs driving patterns PCoA}
+#do stats to determine those OTUs with similar ratio between Sp PA and FL but diff between Su and Fa PA vs FL
+# TO BE ADDED -- also add line plots for each OTU that is diff or Boxplots --- could also add either DNA or cDNA abundance?
+
+```
+
 ```{r identify significantly more active than present OTUs}
 ########## cDNA vs DNA DEseq ##########
 
@@ -1931,9 +1942,6 @@ dev.off()
 
 ####pull out most different, highly active OTUs
 View(deseq_otu_DNAcDNA_FLandPA_raw)
-
-#do stats to determine those OTUs with similar ratio between Sp PA and FL but diff between Su and Fa PA vs FL
-# TO BE ADDED
 
 #Also extract OTUs that are most variable in ratio cD:D over space and time -- for this create dataframe populated by cD:D data, calculate average and stdev, also add minimum and average cD data and min and avg D data
 # start with all data
