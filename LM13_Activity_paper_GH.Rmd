@@ -30,7 +30,7 @@ library(scales)
 library(pgirmess)
 library(multcomp)
 library(multcompView)
-#library(VennDiagram)
+library(cluster)
 library(RColorBrewer)
 
 #Set working directory 
@@ -113,7 +113,6 @@ colnames(tax_table(physeq)) <- c("Kingdom","Phylum","Class","Order","Family","Ge
 
 # removing non-bacterial reads
 physeq <- subset_taxa(physeq, Kingdom == "Bacteria")
-#physeq <- subset_taxa(physeq, Phylum != "Actinobacteria")
 
 # checking read number distribution across samples
 ggplot(data.frame(sum=sample_sums(physeq)),aes(sum)) + ylab("Number of Sequences per Sample") +
@@ -245,7 +244,7 @@ t <- tax_table(as.matrix(phy))
 tax_table(raw_merged) <- t
 ```
 
-```{r beta-diversity DNA and cDNA count data: upgma + ADONIS + PCoA DNA + PCoA RNA}
+```{r beta-diversity DNA and cDNA count data: upgma + ADONIS + PCoA DNA + PCoA RNA + Procrustes}
 ######################################################################################################
 ##################################  BETA-DIVERSITY ###################################################
 ######################################################################################################
@@ -267,9 +266,6 @@ phyloseq_to_adonis(merged_final, distmat = norm_bray, dist = "bray","DayNight")
 phyloseq_to_adonis(merged_final, distmat = norm_bray, dist = "bray","Lake")
 formula<-c("Fraction","Season","Lake","Station","Depth_C","DNA","DayNight")
 phyloseq_to_adonis(merged_final, distmat = norm_bray, dist = "bray",formula)
-
-#Partial Mantel test taking variation in DNA in account 
-############TO BE ADDED
 
 ## create PCoA plot for RNA and DNA seperately
 # Betadiv pcoa Bray-Curtis DNA only
@@ -433,15 +429,48 @@ pcoa_BC34_RNA <- ggplot(bray_pcoa4_RNA, aes(Axis.3, Axis.4 * -1, color = Season,
         legend.position = "right"); pcoa_BC34_RNA
   dev.off()
 
-# Procrustes analysis
-############TO BE ADDED
+# Procrustes analysis to determine whether DNA and RNA patterns are different or not
+merged_final_RNA_procr <- subset_samples(subset_samples(merged_final,DNA == "cD"),names != "Su.EcD.110.DN")
+norm_bray_RNA_procr <- vegdist(t(otu_table(merged_final_RNA_procr)), method = "bray")  # calculates the Bray-Curtis Distances
+bray_pcoaveg_DNA <- cmdscale(norm_bray_DNA)
+bray_pcoaveg_RNA <- cmdscale(norm_bray_RNA_procr)
+proc_DNA_RNA <- procrustes(bray_pcoaveg_DNA, bray_pcoaveg_RNA, scale = FALSE, symmetric = FALSE)
+summary(proc_DNA_RNA)
+protest(bray_pcoaveg_DNA, bray_pcoaveg_RNA, permutations = how(nperm = 999))
+
+#Partial Mantel test to look at how env factors have additional affect on RNA data after taking variation at the DNA level into account 
+env_data <- data.frame(subset(sample_data(merged_final_DNA), select=c("Fraction", "Season", "DayNight","Lake", "Shore", "Depth_Q")))
+  
+env_data$Fraction[env_data$Fraction=="B"]<-"3"
+env_data$Fraction[env_data$Fraction=="E"]<-"20"
+env_data$Fraction<-as.numeric(env_data$Fraction)
+env_data$Season[env_data$Season=="Sp"]<-"4"
+env_data$Season[env_data$Season=="Su"]<-"7"
+env_data$Season[env_data$Season=="Fa"]<-"9"
+env_data$Season<-as.numeric(env_data$Season)
+env_data$DayNight[env_data$DayNight=="D"]<-"1"
+env_data$DayNight[env_data$DayNight=="N"]<-"2"
+env_data$DayNight<-as.numeric(env_data$DayNight)
+env_data$Lake[env_data$Lake=="MM"]<-"2"
+env_data$Lake[env_data$Lake=="MLB"]<-"1"
+env_data$Lake<-as.numeric(env_data$Lake)
+env_data$Shore[env_data$Shore=="Off"]<-"20"
+env_data$Shore[env_data$Shore=="Near"]<-"5"
+env_data$Shore[env_data$Shore=="MLB"]<-"1"
+env_data$Shore<-as.numeric(env_data$Shore)
+env_data$Depth_Q<-as.numeric(env_data$Depth_Q)
+
+env_gower <- daisy(env_data,metric = c("gower"))
+mantel.partial(norm_bray_RNA_procr, env_gower, norm_bray_DNA, method = "pearson", permutations = 999, 
+    strata = NULL, na.rm = FALSE, parallel = getOption("mc.cores"))
+mantel(norm_bray_RNA_procr, env_gower)
 ```
 
 ```{r top 200 taxa beta-diversity DNA and cDNA count data: upgma + ADONIS + PCoA DNA + PCoA RNA}
 ######################################################################################################
 ##################################  BETA-DIVERSITY ###################################################
 ######################################################################################################
-## If want to limit to top taxa, then uncomment the following lines > 0.05 % on average
+## limit to top 200 taxa
 merged_final_toptaxa <- prune_taxa(taxa_sums(merged_final) > 215, merged_final)
 physeq_toptaxa = prune_taxa(taxa_names(merged_final_toptaxa),physeq)
 raw_merged_toptaxa = prune_taxa(taxa_names(merged_final_toptaxa),raw_merged)
@@ -692,9 +721,6 @@ pcoa_BC34_toptaxa_RNA <- ggplot(bray_pcoa4_toptaxa_RNA, aes(Axis.3, Axis.4 * -1,
         ###LEGEND TOP RIGHT CORNER
         legend.position = "right"); pcoa_BC34_toptaxa_RNA
   dev.off()
-
-# Procrustes analysis
-############TO BE ADDED
 
 ```
 
@@ -1326,7 +1352,7 @@ shared_DcD_reps_Depth_C_boxplot_toptaxa <- ggplot(shared_DcD_reps_Depth_C_try, a
 dev.off()
 ```
 
-```{r top 200 taxa RNA:DNA ratio data PCoA + ADONIS}
+```{r top 200 taxa RNA:DNA ratio data PCoA + Procrustes + ADONIS}
 ######################################################################################################
 ##################################  cDNA vs DNA ######################################################
 ######################################################################################################
@@ -1436,6 +1462,28 @@ phyloseq_to_adonis(cDD_physeq, distmat = cDD_norm_euc, dist = "euclidean","DayNi
 phyloseq_to_adonis(cDD_physeq, distmat = cDD_norm_euc, dist = "euclidean","Lake")
 formula<-c("Fraction","Season","Lake","Station","Depth_C","DayNight")
 phyloseq_to_adonis(cDD_physeq, distmat = cDD_norm_euc, dist = "euclidean",formula)
+
+##Procrustes analysis DNA - RNA - RNA:DNA ratios top 200 to determine correlation between ordination patterns
+# first redo pcoa ordination in vegan, as procrustes package is written for vegan output
+merged_final_toptaxa_RNA_procr <- subset_samples(subset_samples(merged_final_toptaxa,DNA == "cD"),names != "Su.EcD.110.DN")
+norm_bray_toptaxa_RNA_procr <- vegdist(t(otu_table(merged_final_toptaxa_RNA_procr)), method = "bray")  # calculates the Bray-Curtis Distances
+bray_pcoaveg_DNA_toptaxa <- cmdscale(norm_bray_toptaxa_DNA)
+ordiplot(bray_pcoaveg_DNA_toptaxa, type="text")
+bray_pcoaveg_RNA_toptaxa <- cmdscale(norm_bray_toptaxa_RNA_procr)
+ordiplot(bray_pcoaveg_RNA_toptaxa, type="text")
+eucl_pcoaveg_logcDD_toptaxa <- cmdscale(cDD_norm_euc)
+ordiplot(eucl_pcoaveg_logcDD_toptaxa, type="text")
+
+# run procrustes, plot the shifts in ordination space and test non-randomness between the two configurations
+proc_DNA_RNA_toptaxa <- procrustes(bray_pcoaveg_DNA_toptaxa, bray_pcoaveg_RNA_toptaxa, scale = TRUE, symmetric = FALSE)
+plot(proc_DNA_RNA_toptaxa)
+protest(bray_pcoaveg_DNA_toptaxa, bray_pcoaveg_RNA_toptaxa, permutations = how(nperm = 999))
+proc_DNA_logcDD_toptaxa <- procrustes(bray_pcoaveg_DNA_toptaxa, eucl_pcoaveg_logcDD_toptaxa, scale = TRUE, symmetric = FALSE)
+plot(proc_DNA_logcDD_toptaxa)
+protest(bray_pcoaveg_DNA_toptaxa, eucl_pcoaveg_logcDD_toptaxa, permutations = how(nperm = 999))
+proc_RNA_logcDD_toptaxa <- procrustes(bray_pcoaveg_RNA_toptaxa, eucl_pcoaveg_logcDD_toptaxa, scale = TRUE, symmetric = FALSE)
+plot(proc_RNA_logcDD_toptaxa)
+protest(bray_pcoaveg_RNA_toptaxa, eucl_pcoaveg_logcDD_toptaxa, permutations = how(nperm = 999))
 
 ```
 
@@ -1966,11 +2014,59 @@ count_ratio_summary$OTU = rownames(cD2D_stats)
 View(arrange(filter(count_ratio_summary, cD_COUNT > 30),-RAT_CV))
 ## would be good to work toward a figure with boxplots for cDNA, DNA, and cD2D data for each OTU, ordered by decreasing CV only including OTUs detected in x% of samples ### Make line plots like Michelle
 
+```
 
 
-###############################################################
-############## END OF LM13_Activity Analyses ##################
-###############################################################
+```{r identify significantly more active than present OTUs - No Actinobacteria}
+########## cDNA vs DNA DEseq ##########
+
+#repeat the DEseq analysis without Actinobacteria
+raw_merged_toptaxa_noAct <- subset_taxa(raw_merged_toptaxa, Phylum != "Actinobacteria")
+
+phylum.colors<-group.colors
+
+# deseq without pruning low abundance - otu level - per fraction - PA - no scaling (done by DEseq2!)
+raw_merged_PA <- subset_samples(raw_merged_toptaxa_noAct, Fraction != "B")
+deseq_otu_DNAcDNA_PA_raw <- deSEQ_noprune(raw_merged_PA, ~ DNA)
+#deseq_otu_DNAcDNA_PA_raw$plotvalue <- log(as.numeric(deseq_otu_DNAcDNA_PA_raw$baseMean),2)
+deseq_otu_DNAcDNA_PA_raw$plotvalue <- as.vector(as.numeric(taxa_sums(raw_merged_PA)/sum(sample_sums(raw_merged_PA))*100)^.25)
+deseq_otu_DNAcDNA_PA_raw$sig <- as.factor((deseq_otu_DNAcDNA_PA_raw$padj<0.01)*1)
+deseq_otu_DNAcDNA_plot_PA_raw <- plot_deSEQ(deseq_otu_DNAcDNA_PA_raw, "OTU cDNA:DNA PA samples")
+#pdf(file="/Users/vdenef/Documents/UMich/Papers/2015_Fujimoto_activity_Frontiers/Rplot_cDvsD_PA_noscale.pdf", width= 20, height=15, pointsize= 14, useDingbats=FALSE)
+deseq_otu_DNAcDNA_plot_PA_raw
+#dev.off()
+
+# deseq without pruning low abundance - otu level - per fraction - FL - no scaling (done by DEseq2!)
+raw_merged_FL <- subset_samples(raw_merged_toptaxa_noAct, Fraction != "E")
+deseq_otu_DNAcDNA_FL_raw <- deSEQ_noprune(raw_merged_FL, ~ DNA)
+#deseq_otu_DNAcDNA_FL_raw$plotvalue <- log(as.numeric(deseq_otu_DNAcDNA_FL_raw$baseMean),2)
+deseq_otu_DNAcDNA_FL_raw$plotvalue <- as.vector(as.numeric(taxa_sums(raw_merged_FL)/sum(sample_sums(raw_merged_FL))*100)^.25)
+deseq_otu_DNAcDNA_FL_raw$sig <- as.factor((deseq_otu_DNAcDNA_FL_raw$padj<0.01)*1)
+deseq_otu_DNAcDNA_plot_FL_raw <- plot_deSEQ(deseq_otu_DNAcDNA_FL_raw, "OTU cDNA:DNA FL samples")
+#pdf(file="/Users/vdenef/Documents/UMich/Papers/2015_Fujimoto_activity_Frontiers/Rplot_cDvsD_FL_noscale.pdf", width= 20, height=15, pointsize= 14, useDingbats=FALSE)
+deseq_otu_DNAcDNA_plot_FL_raw
+#dev.off()
+
+#plot together
+Phylum_temp <- as.character(deseq_otu_DNAcDNA_PA_raw$Phylum)
+for  (i in 1:length(Phylum_temp)){ 
+  Phylum_temp[i] = paste(Phylum_temp[i],"PA",sep=" ")
+} 
+deseq_otu_DNAcDNA_PA_raw$Phylum_plot <- Phylum_temp
+
+Phylum_temp <- as.character(deseq_otu_DNAcDNA_FL_raw$Phylum)
+for  (i in 1:length(Phylum_temp)){ 
+  Phylum_temp[i] = paste(Phylum_temp[i],"FL",sep=" ")
+} 
+deseq_otu_DNAcDNA_FL_raw$Phylum_plot <- Phylum_temp
+
+deseq_otu_DNAcDNA_FLandPA_raw<-rbind(deseq_otu_DNAcDNA_FL_raw,deseq_otu_DNAcDNA_PA_raw)
+
+pdf(file="Figures/Rplot_cDvsD_FL_noscale_top200_noAct.pdf", width= 10, height=7.5, pointsize= 14, useDingbats=FALSE)
+deseq_otu_DNAcDNA_FLandPA_raw$Phylum_plot <-factor(deseq_otu_DNAcDNA_FLandPA_raw$Phylum_plot,levels=c("Proteobacteria FL","Proteobacteria PA","Alphaproteobacteria FL","Alphaproteobacteria PA","Betaproteobacteria FL","Betaproteobacteria PA","Gammaproteobacteria FL","Gammaproteobacteria PA","Deltaproteobacteria FL","Deltaproteobacteria PA","Bacteroidetes FL","Bacteroidetes PA","Cytophagia FL","Cytophagia PA","Flavobacteria FL","Flavobacteria PA","Sphingobacteria FL","Sphingobacteria PA","Actinobacteria FL","Actinobacteria PA","Cyanobacteria FL","Cyanobacteria PA","Verrucomicrobia FL","Verrucomicrobia PA","Planctomycetes FL","Planctomycetes PA","Chloroflexi FL","Chloroflexi PA","Acidobacteria FL","Acidobacteria PA","Armatimonadetes FL","Armatimonadetes PA","Firmicutes FL","Firmicutes PA","Gemmatimonadetes FL","Gemmatimonadetes PA","unclassified FL","unclassified PA"))
+deseq_otu_DNAcDNA_plot_FLandPA_raw <- plot_deSEQ_combo(deseq_otu_DNAcDNA_FLandPA_raw, "OTU cDNA:DNA FL and PA samples")
+deseq_otu_DNAcDNA_plot_FLandPA_raw
+dev.off()
 ```
 
 
