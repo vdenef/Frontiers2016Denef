@@ -464,6 +464,69 @@ env_gower <- daisy(env_data,metric = c("gower"))
 mantel.partial(norm_bray_RNA_procr, env_gower, norm_bray_DNA, method = "pearson", permutations = 999, 
     strata = NULL, na.rm = FALSE, parallel = getOption("mc.cores"))
 mantel(norm_bray_RNA_procr, env_gower)
+
+#one env factor at a time: Fraction -- partial Mantel not significant
+env_data_F <- data.frame(subset(sample_data(merged_final_DNA), select=c("Fraction")))
+env_data_F$Fraction[env_data_F$Fraction=="B"]<-"3"
+env_data_F$Fraction[env_data_F$Fraction=="E"]<-"20"
+env_data_F$Fraction<-as.numeric(env_data_F$Fraction)
+env_gower_F <- daisy(env_data_F,metric = c("gower"))
+mantel.partial(norm_bray_RNA_procr, env_gower_F, norm_bray_DNA, method = "pearson", permutations = 999, 
+    strata = NULL, na.rm = FALSE, parallel = getOption("mc.cores"))
+mantel(norm_bray_RNA_procr, env_gower_F)
+
+#one env factor at a time: Season -- partial Mantel significant
+env_data_S <- data.frame(subset(sample_data(merged_final_DNA), select=c("Season")))
+env_data_S$Season[env_data_S$Season=="Sp"]<-"4"
+env_data_S$Season[env_data_S$Season=="Su"]<-"7"
+env_data_S$Season[env_data_S$Season=="Fa"]<-"9"
+env_data_S$Season<-as.numeric(env_data_S$Season)  
+env_gower_S <- daisy(env_data_S,metric = c("gower"))
+mantel.partial(norm_bray_RNA_procr, env_gower_S, norm_bray_DNA, method = "pearson", permutations = 999, 
+    strata = NULL, na.rm = FALSE, parallel = getOption("mc.cores"))
+mantel(norm_bray_RNA_procr, env_gower_S)
+
+#one env factor at a time: DayNight -- partial Mantel not significant
+env_data_DN <- data.frame(subset(sample_data(merged_final_DNA), select=c("DayNight")))
+env_data_DN$DayNight[env_data_DN$DayNight=="D"]<-"1"
+env_data_DN$DayNight[env_data_DN$DayNight=="N"]<-"2"
+env_data_DN$DayNight<-as.numeric(env_data_DN$DayNight)
+env_gower_DN <- daisy(env_data_DN,metric = c("gower"))
+mantel.partial(norm_bray_RNA_procr, env_gower_DN, norm_bray_DNA, method = "pearson", permutations = 999, 
+    strata = NULL, na.rm = FALSE, parallel = getOption("mc.cores"))
+mantel(norm_bray_RNA_procr, env_gower_DN)
+
+#one env factor at a time: Lake -- partial Mantel significant
+env_data_L <- data.frame(subset(sample_data(merged_final_DNA), select=c("Lake")))
+env_data_L$Lake[env_data_L$Lake=="MM"]<-"2"
+env_data_L$Lake[env_data_L$Lake=="MLB"]<-"1"
+env_data_L$Lake<-as.numeric(env_data_L$Lake)
+env_gower_L <- daisy(env_data_L,metric = c("gower"))
+mantel.partial(norm_bray_RNA_procr, env_gower_L, norm_bray_DNA, method = "pearson", permutations = 999, 
+    strata = NULL, na.rm = FALSE, parallel = getOption("mc.cores"))
+mantel(norm_bray_RNA_procr, env_gower_L)
+
+#one env factor at a time: Shore -- partial Mantel not significant
+env_data_Sh <- data.frame(subset(sample_data(merged_final_DNA), select=c("Shore")))
+env_data_Sh$Shore[env_data_Sh$Shore=="Off"]<-"20"
+env_data_Sh$Shore[env_data_Sh$Shore=="Near"]<-"5"
+env_data_Sh$Shore[env_data_Sh$Shore=="MLB"]<-"1"
+env_data_Sh$Shore<-as.numeric(env_data_Sh$Shore)
+env_gower_Sh <- daisy(env_data_Sh,metric = c("gower"))
+mantel.partial(norm_bray_RNA_procr, env_gower_Sh, norm_bray_DNA, method = "pearson", permutations = 999, 
+    strata = NULL, na.rm = FALSE, parallel = getOption("mc.cores"))
+mantel(norm_bray_RNA_procr, env_gower_Sh)
+
+#one env factor at a time: Depth_Q -- partial Mantel not significant
+env_data_D <- data.frame(subset(sample_data(merged_final_DNA), select=c("Depth_Q")))
+env_data_D$Depth_Q<-as.numeric(env_data$Depth_Q)
+env_gower_D <- daisy(env_data_D,metric = c("gower"))
+mantel.partial(norm_bray_RNA_procr, env_gower_D, norm_bray_DNA, method = "pearson", permutations = 999, 
+    strata = NULL, na.rm = FALSE, parallel = getOption("mc.cores"))
+mantel(norm_bray_RNA_procr, env_gower_D)
+
+"Fraction", "DayNight","Lake", "Shore", "Depth_Q"
+
 ```
 
 ```{r top 200 taxa beta-diversity DNA and cDNA count data: upgma + ADONIS + PCoA DNA + PCoA RNA}
@@ -589,8 +652,8 @@ bray_axis4_toptaxa_DNA <- paste("PCoA4:",bray_rel_eigen4_percent_toptaxa_DNA,"%"
 
 PCoA_DNA_toptaxa_title <- paste("PCoA DNA data when considering",ntaxa(merged_final_toptaxa),"OTUs")
 
-pdf(file="Figures/Rplot_PCOA12_BC_toptaxa_DNA.pdf", width= 20, height=15, pointsize= 14)
-pcoa_BC12_toptaxa_DNA <- ggplot(bray_pcoa4_toptaxa_DNA, aes(Axis.1, Axis.2 * -1, color = Season, shape = Station, size = Fraction, fill = Depth_Seas)) +
+pdf(file="Figures/Rplot_PCOA12_BC_toptaxa_DNA.pdf", width= 10, height=7.5, pointsize= 14)
+pcoa_BC12_toptaxa_DNA <- ggplot(bray_pcoa4_toptaxa_DNA, aes(Axis.1, Axis.2, color = Season, shape = Station, size = Fraction, fill = Depth_Seas)) +
   xlab(bray_axis1_toptaxa_DNA) + ylab(bray_axis2_toptaxa_DNA) + ggtitle(PCoA_DNA_toptaxa_title) +
   geom_point(alpha=0.9) + theme_bw() + #ylim(1, -1) + xlim(1, -1) +
   scale_color_manual(name = "season", breaks=c("Sp", "Su",  "Fa"),
@@ -615,7 +678,7 @@ pcoa_BC12_toptaxa_DNA <- ggplot(bray_pcoa4_toptaxa_DNA, aes(Axis.1, Axis.2 * -1,
         legend.position = "right"); pcoa_BC12_toptaxa_DNA
   dev.off()
 
-pdf(file="Figures/Rplot_PCOA34_BC_toptaxa_DNA.pdf", width= 20, height=15, pointsize= 14)
+pdf(file="Figures/Rplot_PCOA34_BC_toptaxa_DNA.pdf", width= 10, height=7.5, pointsize= 14)
 pcoa_BC34_toptaxa_DNA <- ggplot(bray_pcoa4_toptaxa_DNA, aes(Axis.3, Axis.4 * -1, color = Season, shape = Station, size = Fraction, fill = Depth_Seas)) +
   xlab(bray_axis3_toptaxa_DNA) + ylab(bray_axis4_toptaxa_DNA) + ggtitle(PCoA_DNA_toptaxa_title) +
   geom_point(alpha=0.9) + theme_bw() + #ylim(1, -1) + xlim(1, -1) +
@@ -670,7 +733,7 @@ bray_axis4_toptaxa_RNA <- paste("PCoA4:",bray_rel_eigen4_percent_toptaxa_RNA,"%"
 
 PCoA_RNA_toptaxa_title <- paste("PCoA RNA data when considering",ntaxa(merged_final_toptaxa),"OTUs")
 
-pdf(file="Figures/Rplot_PCOA12_BC_toptaxa_RNA.pdf", width= 20, height=15, pointsize= 14)
+pdf(file="Figures/Rplot_PCOA12_BC_toptaxa_RNA.pdf", width= 10, height=7.5, pointsize= 14)
 pcoa_BC12_toptaxa_RNA <- ggplot(bray_pcoa4_toptaxa_RNA, aes(Axis.1, Axis.2 * -1, color = Season, shape = Station, size = Fraction, fill = Depth_Seas)) +
   xlab(bray_axis1_toptaxa_RNA) + ylab(bray_axis2_toptaxa_RNA) + ggtitle(PCoA_RNA_toptaxa_title) +
   geom_point(alpha=0.9) + theme_bw() + #ylim(1, -1) + xlim(1, -1) +
@@ -696,7 +759,7 @@ pcoa_BC12_toptaxa_RNA <- ggplot(bray_pcoa4_toptaxa_RNA, aes(Axis.1, Axis.2 * -1,
         legend.position = "right"); pcoa_BC12_toptaxa_RNA
   dev.off()
 
-pdf(file="Figures/Rplot_PCOA34_BC_toptaxa_RNA.pdf", width= 20, height=15, pointsize= 14)
+pdf(file="Figures/Rplot_PCOA34_BC_toptaxa_RNA.pdf", width= 10, height=7.5, pointsize= 14)
 pcoa_BC34_toptaxa_RNA <- ggplot(bray_pcoa4_toptaxa_RNA, aes(Axis.3, Axis.4 * -1, color = Season, shape = Station, size = Fraction, fill = Depth_Seas)) +
   xlab(bray_axis3_toptaxa_RNA) + ylab(bray_axis4_toptaxa_RNA) + ggtitle(PCoA_RNA_toptaxa_title) +
   geom_point(alpha=0.9) + theme_bw() + #ylim(1, -1) + xlim(1, -1) +
@@ -1397,7 +1460,7 @@ cDD_euc_axis2 <- paste("PCoA2:",cDD_euc_rel_eigen2_percent,"%")
 cDD_euc_axis3 <- paste("PCoA3:",cDD_euc_rel_eigen3_percent,"%")
 cDD_euc_axis4 <- paste("PCoA4:",cDD_euc_rel_eigen4_percent,"%")
 
-pdf(file="Figures/Rplot_cDD_PCOA12_EUC_toptaxa.pdf", width= 20, height=15, pointsize= 14)
+pdf(file="Figures/Rplot_cDD_PCOA12_EUC_toptaxa.pdf", width= 10, height=7.5, pointsize= 14)
 cDD_pcoa_EUC12_toptaxa <- ggplot(cDD_euc_pcoa4, aes(Axis.1, Axis.2 * -1, color = Season, shape = Station, size = Fraction, fill = Depth_Seas)) +
   xlab(cDD_euc_axis1) + ylab(cDD_euc_axis2) + ggtitle(cDD_PCoA_title) +
   geom_point(alpha=0.9)  + theme_bw() + #ylim(1, -1) + xlim(1, -1) +
@@ -1423,7 +1486,7 @@ cDD_pcoa_EUC12_toptaxa <- ggplot(cDD_euc_pcoa4, aes(Axis.1, Axis.2 * -1, color =
         legend.position = "right"); cDD_pcoa_EUC12_toptaxa
   dev.off()
 
-pdf(file="Figures/Rplot_cDD_PCOA34_EUC_toptaxa.pdf", width= 20, height=15, pointsize= 14)
+pdf(file="Figures/Rplot_cDD_PCOA34_EUC_toptaxa.pdf", width= 10, height=7.5, pointsize= 14)
 cDD_pcoa_EUC34_toptaxa <- ggplot(cDD_euc_pcoa4, aes(Axis.3, Axis.4 * -1, color = Season, shape = Station, size = Fraction, fill = Depth_Seas)) +
   xlab(cDD_euc_axis3) + ylab(cDD_euc_axis4) + ggtitle(cDD_PCoA_title) +
   geom_point(alpha=0.9) + theme_bw() + #ylim(1, -1) + xlim(1, -1) +
@@ -2006,15 +2069,19 @@ colnames(t4)[1] <- "log2FoldChange"
 rownames(t4) <- t4$Species
 cDD_diff <- rbind(t1,t2,t3,t4)
 
-#now plot data
-  y = tapply(cDD_diff$log2FoldChange, cDD_diff$Species, function(x) max(x))
-  y = sort(y, TRUE)
-  cDD_diff$Species = factor(as.character(cDD_diff$Species), levels=names(y))
-  ggplot(cDD_diff, aes(x=Species, y=log2FoldChange, color=Habitat, size=15)) + 
-    geom_jitter(position = position_jitter(width = .5)) + theme_bw() +  #ggtitle(title) +  
+#now plot data, sorting the otus based on how different SuFaPA ratio is from SpPA
+y = tapply(abs(t3$log2FoldChange-t1$log2FoldChange)-abs(t2$log2FoldChange-t1$log2FoldChange), t3$Species, function(x) max(x))
+y = sort(y, TRUE)
+cDD_diff$Species = factor(as.character(cDD_diff$Species), levels=names(y))
+pdf(file="Figures/Rplot_cDD_PCoAdrivingOTUsSpvsSuFa_noMLB.pdf", width= 10, height=7.5, pointsize= 14, useDingbats=FALSE)
+drivingOTUsSpvsSuFa_noMLB <- ggplot(cDD_diff, aes(x=Species, y=log2FoldChange, color=Habitat, shape = Habitat, size=15)) + 
+    geom_point(alpha=1) + theme_bw() +  #ggtitle(title) +  
     scale_color_manual(name = "Habitat", breaks=c("SpPA", "SpFL",  "SuFaPA", "SuFaFL"),
                      labels = c("SpPA", "SpFL",  "SuFaPA", "SuFaFL"), 
-                     values = c("SpPA" = "darkgreen", "SpFL" = "chartreuse4",  "SuFaPA" = "darkorange", "SuFaFL" = "red")) +
+                     values = c("SpPA" = "black", "SpFL" = "black",  "SuFaPA" = "darkorange", "SuFaFL" = "black")) +
+    scale_shape_manual(name = "Habitat", breaks=c("SpPA", "SpFL",  "SuFaPA", "SuFaFL"),
+                     labels = c("SpPA", "SpFL",  "SuFaPA", "SuFaFL"), 
+                     values = c("SpPA" = 16, "SpFL" = 1,  "SuFaPA" = 17, "SuFaFL" = 2)) +
     scale_y_continuous(breaks=seq(-3,3,1),limits=c(-3,3)) + 
     theme(axis.title.x = element_text(face="bold", size=16),
           axis.text.x = element_text(angle=30, colour = "black", vjust=1, hjust = 1, size=12),
@@ -2024,8 +2091,12 @@ cDD_diff <- rbind(t1,t2,t3,t4)
           legend.title = element_text(size=12, face="bold"),
           legend.text = element_text(size = 12),
           strip.background = element_rect(colour="black"),
-          legend.position="right")
+          legend.position="right"); drivingOTUsSpvsSuFa_noMLB
+dev.off()
 
+#output sorted otus and taxonomy for table generation
+View(levels(t3$Species))
+View(data.frame(t3$Species,t3$Phylum,t3$Class,t3$Order,t3$Family,t3$Genus,t3$Tribe))
 ```
 
 ```{r identify significantly more active than present OTUs}
