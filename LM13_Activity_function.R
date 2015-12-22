@@ -232,9 +232,9 @@ plot_deSEQ_combo <- function(deSEQdata, title){
                        labels = c("p>0.05", "p<0.05"),
                        values = c("0" = 21, "1"= 19)) +
     scale_size_continuous("abundance") +
-    scale_y_continuous(breaks=seq(-15,15,1),limits=c(-7,7)) + 
+    scale_y_continuous(breaks=seq(-15,15,1),limits=c(-6,5)) + 
     theme(axis.title.x = element_text(face="bold", size=16),
-          axis.text.x = element_text(angle=30, colour = "black", vjust=1, hjust = 1, size=12),
+          axis.text.x = element_text(angle=90, colour = "black", vjust=1, hjust = 1, size=12),
           axis.text.y = element_text(colour = "black", size=16),
           axis.title.y = element_text(face="bold", size=16),
           plot.title = element_text(face="bold", size = 20),

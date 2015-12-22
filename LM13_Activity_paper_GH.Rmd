@@ -2150,29 +2150,6 @@ dev.off()
 ####pull out most different, highly active OTUs
 View(deseq_otu_DNAcDNA_FLandPA_raw)
 
-#Also extract OTUs that are most variable in ratio cD:D over space and time -- for this create dataframe populated by cD:D data, calculate average and stdev, also add minimum and average cD data and min and avg D data
-# start with all data
-colnames(mf_cD2D) <- paste("cD2D", colnames(mf_cD2D), sep = "_")
-co.var <- function(x) ( 100*sd(x)/mean(x) )
-cD2D_stats <- transform(mf_cD2D, RAT_MEAN = apply(X = mf_cD2D,1, mean, na.rm = TRUE), RAT_SD=apply(X = mf_cD2D,1, sd, na.rm = TRUE), RAT_CV=apply(X = mf_cD2D,1,co.var), RAT_MAX=apply(X = mf_cD2D,1, max, na.rm = TRUE))
-mf_cD_t <- mf_cD[,-48]
-mf_D_t <- mf_D[,-48]
-cD_stats <- select(transform(mf_cD_t, cD_MEAN = apply(X = mf_cD_t,1, mean, na.rm = TRUE), cD_COUNT = rowSums(mf_cD_t > 0)),cD_MEAN, cD_COUNT)
-D_stats <- select(transform(mf_D_t, D_MEAN = apply(X = mf_D_t,1, mean, na.rm = TRUE), D_COUNT = rowSums(mf_D_t > 0)),D_MEAN, D_COUNT)
-cD2D_stats$OTU <- rownames(cD2D_stats)
-D_stats$OTU <- rownames(D_stats)
-cD_stats$OTU <- rownames(cD_stats)
-count_ratio_summary <- merge(cD2D_stats,cD_stats,by="OTU")
-count_ratio_summary$OTU = rownames(cD2D_stats)
-count_ratio_summary <- merge(count_ratio_summary,D_stats,by="OTU")
-count_ratio_summary$OTU = rownames(cD2D_stats)
-cDD_TAX_t <- as.data.frame(cDD_TAX)
-cDD_TAX_t$OTU <- rownames(cDD_TAX)
-count_ratio_summary <- merge(count_ratio_summary,cDD_TAX_t,by="OTU")
-count_ratio_summary$OTU = rownames(cD2D_stats)
-View(arrange(filter(count_ratio_summary, cD_COUNT > 30),-RAT_CV))
-## would be good to work toward a figure with boxplots for cDNA, DNA, and cD2D data for each OTU, ordered by decreasing CV only including OTUs detected in x% of samples ### Make line plots like Michelle
-
 ```
 
 
