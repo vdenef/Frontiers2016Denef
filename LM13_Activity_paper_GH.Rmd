@@ -2067,21 +2067,31 @@ t4 <- data.frame(c(cDD_wilcox_simSpPAFL_diffSuFaPAFL_wtax[4],cDD_wilcox_simSpPAF
 t4$Habitat <- "SuFaFL"
 colnames(t4)[1] <- "log2FoldChange"
 rownames(t4) <- t4$Species
-cDD_diff <- rbind(t1,t2,t3,t4)
+t124 <- rbind(t1,t2,t4)
+t124avg <- ddply(t124, ~Species, function(x){data.frame(t124_mean = mean(as.numeric(x$log2FoldChange)))})
+t124sd <- ddply(t124, ~Species, function(x){data.frame(t124_sd = sd(as.numeric(x$log2FoldChange)))})
+t124summ <- cbind(t1,t124avg$t124_mean,t124sd$t124_sd) %>% select(10,2,3,4,5,6,7,8,9,11)
+t124summ$Habitat <- "SpFLSpPASuFaFL"
+colnames(t124summ)[1] <- "log2FoldChange"
+colnames(t124summ)[10] <- "stdev"
+t3$stdev = 0
+#cDD_diff <- rbind(t1,t2,t3,t4)
+cDD_diff <- rbind(t124summ,t3)
 
 #now plot data, sorting the otus based on how different SuFaPA ratio is from SpPA
-y = tapply(abs(t3$log2FoldChange-t1$log2FoldChange)-abs(t2$log2FoldChange-t1$log2FoldChange), t3$Species, function(x) max(x))
+y = tapply(abs(t3$log2FoldChange-t124summ$log2FoldChange), t3$Species, function(x) max(x))
 y = sort(y, TRUE)
 cDD_diff$Species = factor(as.character(cDD_diff$Species), levels=names(y))
 pdf(file="Figures/Rplot_cDD_PCoAdrivingOTUsSpvsSuFa_noMLB.pdf", width= 10, height=7.5, pointsize= 14, useDingbats=FALSE)
-drivingOTUsSpvsSuFa_noMLB <- ggplot(cDD_diff, aes(x=Species, y=log2FoldChange, color=Habitat, shape = Habitat, size=15)) + 
-    geom_point(alpha=1) + theme_bw() +  #ggtitle(title) +  
-    scale_color_manual(name = "Habitat", breaks=c("SpPA", "SpFL",  "SuFaPA", "SuFaFL"),
-                     labels = c("SpPA", "SpFL",  "SuFaPA", "SuFaFL"), 
-                     values = c("SpPA" = "black", "SpFL" = "black",  "SuFaPA" = "darkorange", "SuFaFL" = "black")) +
-    scale_shape_manual(name = "Habitat", breaks=c("SpPA", "SpFL",  "SuFaPA", "SuFaFL"),
-                     labels = c("SpPA", "SpFL",  "SuFaPA", "SuFaFL"), 
-                     values = c("SpPA" = 16, "SpFL" = 1,  "SuFaPA" = 17, "SuFaFL" = 2)) +
+drivingOTUsSpvsSuFa_noMLB <- ggplot(cDD_diff, aes(x=Species, y=log2FoldChange, color=Habitat, shape = Habitat)) + 
+    geom_point(alpha=1, size=4) + theme_bw() +  #ggtitle(title) +  
+    scale_color_manual(name = "Habitat", breaks=c("SpFLSpPASuFaFL",  "SuFaPA"),
+                     labels = c("Mean(SpFL,SpPA,SuFaFL)",  "SuFaPA"), 
+                     values = c("SpFLSpPASuFaFL" = "black", "SuFaPA" = "darkorange")) +
+    scale_shape_manual(name = "Habitat", breaks=c("SpFLSpPASuFaFL",  "SuFaPA"),
+                     labels = c("Mean(SpFL,SpPA,SuFaFL)",  "SuFaPA"), 
+                     values = c("SpFLSpPASuFaFL" = 16,  "SuFaPA" = 17)) +
+    geom_errorbar(aes(ymin=log2FoldChange-stdev, ymax=log2FoldChange+stdev), width=.5) +
     scale_y_continuous(breaks=seq(-3,3,1),limits=c(-3,3)) + 
     theme(axis.title.x = element_text(face="bold", size=16),
           axis.text.x = element_text(angle=30, colour = "black", vjust=1, hjust = 1, size=12),
@@ -2141,7 +2151,7 @@ deseq_otu_DNAcDNA_FL_raw$Phylum_plot <- Phylum_temp
 
 deseq_otu_DNAcDNA_FLandPA_raw<-rbind(deseq_otu_DNAcDNA_FL_raw,deseq_otu_DNAcDNA_PA_raw)
 
-pdf(file="Figures/Rplot_cDvsD_FL_noscale_top200.pdf", width= 10, height=7.5, pointsize= 14, useDingbats=FALSE)
+pdf(file="Figures/Rplot_cDvsD_FL_noscale_top200.pdf", width= 10, height=15, pointsize= 14, useDingbats=FALSE)
 deseq_otu_DNAcDNA_FLandPA_raw$Phylum_plot <-factor(deseq_otu_DNAcDNA_FLandPA_raw$Phylum_plot,levels=c("Proteobacteria FL","Proteobacteria PA","Alphaproteobacteria FL","Alphaproteobacteria PA","Betaproteobacteria FL","Betaproteobacteria PA","Gammaproteobacteria FL","Gammaproteobacteria PA","Deltaproteobacteria FL","Deltaproteobacteria PA","Bacteroidetes FL","Bacteroidetes PA","Cytophagia FL","Cytophagia PA","Flavobacteria FL","Flavobacteria PA","Sphingobacteria FL","Sphingobacteria PA","Actinobacteria FL","Actinobacteria PA","Cyanobacteria FL","Cyanobacteria PA","Verrucomicrobia FL","Verrucomicrobia PA","Planctomycetes FL","Planctomycetes PA","Chloroflexi FL","Chloroflexi PA","Acidobacteria FL","Acidobacteria PA","Armatimonadetes FL","Armatimonadetes PA","Firmicutes FL","Firmicutes PA","Gemmatimonadetes FL","Gemmatimonadetes PA","unclassified FL","unclassified PA"))
 deseq_otu_DNAcDNA_plot_FLandPA_raw <- plot_deSEQ_combo(deseq_otu_DNAcDNA_FLandPA_raw, "OTU cDNA:DNA FL and PA samples")
 deseq_otu_DNAcDNA_plot_FLandPA_raw
