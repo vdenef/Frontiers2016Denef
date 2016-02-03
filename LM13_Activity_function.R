@@ -173,7 +173,7 @@ plot_deSEQ <- function(deSEQdata, title){
     scale_color_manual(values = phylum.colors,name="Phylum") +
     #    scale_color_manual(name="p-value",  breaks = c("0", "1"), labels = c("p>1", "p<0.01"), values = c("0" = "grey", "1"="black")) +
     scale_shape_manual(name = "p-value", breaks = c("0", "1"), 
-                       labels = c("p>0.05", "p<0.05"),
+                       labels = c("p>0.01", "p<0.01"),
                        values = c("0" = 21, "1"= 19)) +
     scale_size_continuous("abundance") +
     scale_y_continuous(breaks=seq(-15,15,1),limits=c(-7,7)) + 

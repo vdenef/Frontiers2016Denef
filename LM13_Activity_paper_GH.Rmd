@@ -57,40 +57,18 @@ group.colors <- c(Acidobacteria = "grey26", Actinobacteria = "royalblue", Alphap
 ## Data import and normalization
 ```{r data import and normalization}
 
-### loading original mothur output and sample metadata
+### loading mothur output with FWDB+silva taxonomy and sample metadata
 sharedfile <- "Input_data/jgi16S40kitagger.trim.contigs.good.unique.good.filter.unique.precluster.pick.pick.an.unique_list.shared"
 taxfile <- "Input_data/jgi16S40kitagger.trim.contigs.good.unique.good.filter.unique.precluster.pick.pick.an.unique_list.0.03.cons.taxonomy"
-mothurdata_original <- import_mothur(mothur_shared_file = sharedfile ,mothur_constaxonomy_file = taxfile )
+mothurdata <- import_mothur(mothur_shared_file = sharedfile ,mothur_constaxonomy_file = taxfile )
 sampledata <- read.table("Input_data/LMSampleDescription.tsv",sep="\t",header=T,row.names=1,as.is=T)
 SAMPLE = sample_data(sampledata)
-physeq_mothur_original = merge_phyloseq(mothurdata_original, SAMPLE)
-
-### loading rdp taxonomy (cutoff = 50)
-taxfile_rdp<-"Input_data/All_rdp50taxonomy.sed.tsv"
-mothurdata_rdp <- import_mothur(mothur_shared_file = sharedfile ,mothur_constaxonomy_file = taxfile_rdp )
-physeq_mothur_rdp = merge_phyloseq(mothurdata_rdp, SAMPLE)
-
-### loading FWDB+silva taxonomy
-taxfile_fwdb<-"Input_data/jgi16S40kitagger.trim.contigs.good.unique.good.filter.unique.precluster.pick.pick.an.unique_list.0.03.cons.FWDB+Silva.taxonomy"
-mothurdata_fwdb <- import_mothur(mothur_shared_file = sharedfile, mothur_constaxonomy_file = taxfile_fwdb )
-physeq_mothur_fwdb = merge_phyloseq(mothurdata_fwdb, SAMPLE)
-
-### loading FWDB+silva+rdp(Cyano and unclassified)
-### to generate this file from the files generated above, you have to replace cyanos and unclassifieds at phylum level in fwdb+silva with the rdp classification (cyanos are better annotated in RDP). We use a custom ruby script to do this. These commands are commented out below and are commands you would use in a shell window. The script and files match.file and match1.file are included in the Input_data folder
-#ruby replace_taxonomy_byOTU.rb All_rdp50taxonomy.sed.tsv 0 2 jgi16S40kitagger.trim.contigs.good.unique.good.filter.unique.precluster.pick.pick.an.unique_list.0.03.cons.FWDB+Silva.taxonomy 0 2 match1.file ##match1.file has content Cyanobacteria
-#ruby replace_taxonomy_byOTU.rb All_rdp50taxonomy.sed.tsv 0 2 jgi16S40kitagger.trim.contigs.good.unique.good.filter.unique.precluster.pick.pick.an.unique_list.0.03.cons.FWDB+Silva.taxonomy.renamed 0 2 match.file ##match.file has content Bacteria(100);unclassified
-#sed -e 's/Unclassified/unclassified/g' jgi16S40kitagger.trim.contigs.good.unique.good.filter.unique.precluster.pick.pick.an.unique_list.0.03.cons.FWDB+Silva.taxonomy.renamed.renamed > FWDB+Silva+rdp.taxonomy
-taxfile_fwdb<-"Input_data/FWDB+Silva+rdp.taxonomy"
-mothurdata_fwdb <- import_mothur(mothur_shared_file = sharedfile ,mothur_constaxonomy_file = taxfile_fwdb )
-physeq_mothur_fwdb = merge_phyloseq(mothurdata_fwdb, SAMPLE)
+physeq_mothur = merge_phyloseq(mothurdata, SAMPLE)
 
 ### setting phyloseq object to work with
-physeq <- physeq_mothur_fwdb
+physeq <- physeq_mothur
 
 ### We need to change the taxonomy names
-## commented out lines are used when using mothur or rdp taxonomy, not used for this manuscript's analysis
-#tax_table(physeq) <- cbind(tax_table(physeq),row.names(tax_table(physeq)))
-#colnames(tax_table(physeq)) <- c("Kingdom","Phylum","Class","Order","Family","Genus",Species")
 ## when using the fwdb taxonomy we need to add different headers after removing the last column, which contains no information except for 1 Verrucomicrobia taxon
 tax_table(physeq) <- tax_table(physeq)[,-8] # this removes the final column
 tax_table(physeq) <- cbind(tax_table(physeq),row.names(tax_table(physeq)))
@@ -209,6 +187,12 @@ for  (i in 1:length(Phylum)){
 for  (i in 1:length(Phylum)){ 
   if (Phylum[i] == "Sphingobacteriia"){
       Phylum[i] <- "Sphingobacteria" 
+    }
+  } 
+
+for  (i in 1:length(Phylum)){ 
+  if (Phylum[i] == "Flavobacteriia"){
+      Phylum[i] <- "Flavobacteria" 
     }
   } 
 
@@ -562,6 +546,12 @@ for  (i in 1:length(Phylum)){
 for  (i in 1:length(Phylum)){ 
   if (Phylum[i] == "Sphingobacteriia"){
       Phylum[i] <- "Sphingobacteria" 
+    }
+  } 
+
+for  (i in 1:length(Phylum)){ 
+  if (Phylum[i] == "Flavobacteriia"){
+      Phylum[i] <- "Flavobacteria" 
     }
   } 
 
@@ -1081,7 +1071,7 @@ shared_DcD_reps_Depth_C_boxplot <- ggplot(shared_DcD_reps_Depth_C_try, aes(x = D
 dev.off()
 ```
 
-## RNA vs DNA overlap (Fig. 3B)
+## Top 200 RNA vs DNA overlap (Fig. 3B)
 ```{r top 200 taxa RNA vs DNA overlap}
 ### DNA vs RNA overlap 
 # first make a dataframe that has sample name and list of comma-delimited otus in it
@@ -2100,8 +2090,8 @@ drivingOTUsSpvsSuFa_noMLB <- ggplot(cDD_diff, aes(x=Species, y=log2FoldChange, c
 dev.off()
 
 #output sorted otus and taxonomy for table generation
-View(levels(t3$Species))
-View(data.frame(t3$Species,t3$Phylum,t3$Class,t3$Order,t3$Family,t3$Genus,t3$Tribe))
+View(levels(cDD_diff$Species))
+View(data.frame(cDD_diff$Species,cDD_diff$Phylum,cDD_diff$Class,cDD_diff$Order,cDD_diff$Family,cDD_diff$Genus,cDD_diff$Tribe))
 ```
 
 ## top 200 taxa identify significantly more active than present OTUs (Fig. 4, Table 3)
@@ -2142,7 +2132,7 @@ deseq_otu_DNAcDNA_FL_raw$Phylum_plot <- Phylum_temp
 deseq_otu_DNAcDNA_FLandPA_raw<-rbind(deseq_otu_DNAcDNA_FL_raw,deseq_otu_DNAcDNA_PA_raw)
 
 pdf(file="Figures/Rplot_cDvsD_FL_noscale_top200.pdf", width= 10, height=15, pointsize= 14, useDingbats=FALSE)
-deseq_otu_DNAcDNA_FLandPA_raw$Phylum_plot <-factor(deseq_otu_DNAcDNA_FLandPA_raw$Phylum_plot,levels=c("Proteobacteria FL","Proteobacteria PA","Alphaproteobacteria FL","Alphaproteobacteria PA","Betaproteobacteria FL","Betaproteobacteria PA","Gammaproteobacteria FL","Gammaproteobacteria PA","Deltaproteobacteria FL","Deltaproteobacteria PA","Bacteroidetes FL","Bacteroidetes PA","Cytophagia FL","Cytophagia PA","Flavobacteria FL","Flavobacteria PA","Sphingobacteria FL","Sphingobacteria PA","Actinobacteria FL","Actinobacteria PA","Cyanobacteria FL","Cyanobacteria PA","Verrucomicrobia FL","Verrucomicrobia PA","Planctomycetes FL","Planctomycetes PA","Chloroflexi FL","Chloroflexi PA","Acidobacteria FL","Acidobacteria PA","Armatimonadetes FL","Armatimonadetes PA","Firmicutes FL","Firmicutes PA","Gemmatimonadetes FL","Gemmatimonadetes PA","unclassified FL","unclassified PA"))
+deseq_otu_DNAcDNA_FLandPA_raw$Phylum_plot <-factor(deseq_otu_DNAcDNA_FLandPA_raw$Phylum_plot,levels=c("Proteobacteria FL","Proteobacteria PA","Alphaproteobacteria FL","Alphaproteobacteria PA","Betaproteobacteria FL","Betaproteobacteria PA","Gammaproteobacteria FL","Gammaproteobacteria PA","Deltaproteobacteria FL","Deltaproteobacteria PA","Bacteroidetes FL","Bacteroidetes PA","Cytophagia FL","Cytophagia PA","Flavobacteria FL","Flavobacteria PA","Sphingobacteria FL","Sphingobacteria PA","Actinobacteria FL","Actinobacteria PA","Cyanobacteria FL","Cyanobacteria PA","Verrucomicrobia FL","Verrucomicrobia PA","Planctomycetes FL","Planctomycetes PA","Chloroflexi FL","Chloroflexi PA","Acidobacteria FL","Acidobacteria PA","Armatimonadetes FL","Armatimonadetes PA","Chlorobi FL","Chlorobi PA","Firmicutes FL","Firmicutes PA","Gemmatimonadetes FL","Gemmatimonadetes PA","unclassified FL","unclassified PA"))
 deseq_otu_DNAcDNA_plot_FLandPA_raw <- plot_deSEQ_combo(deseq_otu_DNAcDNA_FLandPA_raw, "OTU cDNA:DNA FL and PA samples")
 deseq_otu_DNAcDNA_plot_FLandPA_raw
 dev.off()
@@ -2193,7 +2183,7 @@ deseq_otu_DNAcDNA_FL_raw$Phylum_plot <- Phylum_temp
 deseq_otu_DNAcDNA_FLandPA_raw<-rbind(deseq_otu_DNAcDNA_FL_raw,deseq_otu_DNAcDNA_PA_raw)
 
 pdf(file="Figures/Rplot_cDvsD_FL_noscale_top200_noAct.pdf", width= 10, height=7.5, pointsize= 14, useDingbats=FALSE)
-deseq_otu_DNAcDNA_FLandPA_raw$Phylum_plot <-factor(deseq_otu_DNAcDNA_FLandPA_raw$Phylum_plot,levels=c("Proteobacteria FL","Proteobacteria PA","Alphaproteobacteria FL","Alphaproteobacteria PA","Betaproteobacteria FL","Betaproteobacteria PA","Gammaproteobacteria FL","Gammaproteobacteria PA","Deltaproteobacteria FL","Deltaproteobacteria PA","Bacteroidetes FL","Bacteroidetes PA","Cytophagia FL","Cytophagia PA","Flavobacteria FL","Flavobacteria PA","Sphingobacteria FL","Sphingobacteria PA","Actinobacteria FL","Actinobacteria PA","Cyanobacteria FL","Cyanobacteria PA","Verrucomicrobia FL","Verrucomicrobia PA","Planctomycetes FL","Planctomycetes PA","Chloroflexi FL","Chloroflexi PA","Acidobacteria FL","Acidobacteria PA","Armatimonadetes FL","Armatimonadetes PA","Firmicutes FL","Firmicutes PA","Gemmatimonadetes FL","Gemmatimonadetes PA","unclassified FL","unclassified PA"))
+deseq_otu_DNAcDNA_FLandPA_raw$Phylum_plot <-factor(deseq_otu_DNAcDNA_FLandPA_raw$Phylum_plot,levels=c("Proteobacteria FL","Proteobacteria PA","Alphaproteobacteria FL","Alphaproteobacteria PA","Betaproteobacteria FL","Betaproteobacteria PA","Gammaproteobacteria FL","Gammaproteobacteria PA","Deltaproteobacteria FL","Deltaproteobacteria PA","Bacteroidetes FL","Bacteroidetes PA","Cytophagia FL","Cytophagia PA","Flavobacteria FL","Flavobacteria PA","Sphingobacteria FL","Sphingobacteria PA","Actinobacteria FL","Actinobacteria PA","Cyanobacteria FL","Cyanobacteria PA","Verrucomicrobia FL","Verrucomicrobia PA","Planctomycetes FL","Planctomycetes PA","Chloroflexi FL","Chloroflexi PA","Acidobacteria FL","Acidobacteria PA","Armatimonadetes FL","Armatimonadetes PA","Chlorobi FL","Chlorobi PA","Firmicutes FL","Firmicutes PA","Gemmatimonadetes FL","Gemmatimonadetes PA","unclassified FL","unclassified PA"))
 deseq_otu_DNAcDNA_plot_FLandPA_raw <- plot_deSEQ_combo(deseq_otu_DNAcDNA_FLandPA_raw, "OTU cDNA:DNA FL and PA samples")
 deseq_otu_DNAcDNA_plot_FLandPA_raw
 dev.off()
